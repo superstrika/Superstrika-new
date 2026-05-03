@@ -11,6 +11,7 @@ import logging
 import components.camera as camera
 from processes.pidCalc import PidCalc
 import processes.gyroMovement as gyroMovement
+import processes.multipleMotors as multipleMotors
 import threading
 import math
 
@@ -41,8 +42,8 @@ class Hunt:
         # motors
         self.i2c = I2C(data.I2C_ID)
         self.servo = servo.Servo(data.SERVO_PIN, data.CHIP_ID)
-        self.motors = motor.multipleMotors(data.MOTOR_PINS, data.CHIP_ID, verbose=False, speedVerbose=True, parent=self)
-        self.dribbler = dribbler.Dribbler(data.DRIBLER_PIN)
+        self.motors = multipleMotors.multipleMotors(data.MOTOR_PINS, parent=self)
+        self.dribbler = dribbler.Dribbler(data.DRIBBLER_PIN)
 
         # sensors
         self.gyro = gyro.MPU6050(self.i2c)
@@ -93,7 +94,7 @@ class Hunt:
         print("Camera Search failed...")
         return None
 
-    def spinSearch(self, delay=0.25, right: bool = True, obj: data.Object = data.Object.Ball) -> bool:
+    def spinSearch(self, delay=0.25, right: bool = True, obj: data.Object = data.Object.Ball) -> bool | None:
         """
         Spins the robot 360 degrees or until ball is found.
         :param delay: the delay between the start of spinning to first angle check.
@@ -119,7 +120,7 @@ class Hunt:
         # print(f"DEBUG: Start angle: {angle}")
         # print(f"DEBUG: startAngle: {startAngle}")
         # print(f"DEBUG: error: {data.SPIN_SEARCH_ERROR}")
-        while (abs(angle) < 360):
+        while abs(angle) < 360:
             if not self.running_gate.is_set():  # ------------------------------------------------------------------- Check if end button was pressed.
                 return None
 
@@ -145,99 +146,6 @@ class Hunt:
         self.log.info("Spin search failed...")
         print("Spin search failed...")
         return False
-
-    def spinToBall(self) -> None:
-        """
-        Spins the robot until robot is straight at the ball.
-        """
-
-        self.log.info("Spinning to Ball...")
-        print("Spinning to Ball...")
-
-        pid = PidCalc(1.5, 0.3, 0.1, 150, 100, 500, verbose=True)
-
-        error = self.serial.getBallLocation()[0]
-        while abs(error) > data.SPIN_TO_BALL_ERROR:
-            speed = pid.pidCalc(error)
-
-            speeds = motor.motor7046.calculate_rotation_speed(speed)
-
-            self.motors.setSpeed(*tuple(speeds))
-            error = self.serial.getBallLocation()[0]
-
-        self.motors.stop()
-        sleep(0.3)
-
-        if (self.serial.getBallLocation()[0] == 0):
-            self.log.info("Spun too much: ball lost")
-            print("Spun too much: ball lost")
-            input()
-            self.spinSearch(right=error < 0)
-            self.spinToBall()
-            return
-
-        angle = self.gyro.get_z_angle()
-
-        # print(f"Right now at {angle} deg.")
-
-        # if error < 0:
-        #     angle += 2
-        # else:
-        #     angle -= 2
-
-        # print(f"Spinning to {angle} deg.")
-
-        # self.gyroMovement.spinToAngle(angle)
-
-        self.log.info("Spun successfully...")
-        print("Spun successfully...")
-
-    # def spinToBall(self):
-    #     """
-    #     Spins the robot until robot is straight at the ball.
-    #     """
-    #     ballX, ballY = self.serial.getBallLocation()
-    #     print(f"ballX: {ballX}, ballY: {ballY}")
-    #     lastError: int = 0
-
-    #     while abs(ballX) > data.SPIN_TO_BALL_ERROR:
-    #         angle = int(math.degrees(math.atan2(ballY, ballX)))
-    #         # print(angle)
-
-    #         self.log.debug(f"Found ball in angle: {angle}. Spinning...")
-    #         print(f"Found ball in angle: {angle}. Spinning...")
-
-    #         self.gyroMovement.spinToAngle(int(angle))
-
-    #         lastError = angle
-    #         ballX, ballY = self.serial.getBallLocation()
-
-    #     if self.serial.getBallLocation()[0] == 0:
-    #         self.motors.stop()
-    #         self.log.info("Spun too much: ball lost")
-    #         print("Spun too much: ball lost")
-    #         input()
-    #         self.spinSearch(right=lastError < 0)
-    #         self.spinToBall()
-
-    def goToBallX(self, delay=0.3) -> None:
-        self.log.info("Going to BallX...")
-        print("Going to BallX...")
-        sp = data.ROBOT_BALL_DISTANCE
-
-        pid = PidCalc(0.8, 0.1, 0.05, 100, 100, 500, verbose=False)
-        pv = self.serial.getBallLocation()[1]  # Y distance
-
-        while abs(pv - sp) > data.GO_TO_BALL_ERROR:
-            speed = pid.pidCalc(pv - sp)
-            print(f"Speed {speed}")
-            self.motors.setSpeed(*tuple(motor.motor7046.calculate_speed(0, speed, 0)))
-
-            sleep(delay)
-            pv = self.serial.getBallLocation()[1]
-
-        self.log.info(f"Got to Ball successfully... e: {pv - sp}")
-        print(f"Got to Ball successfully... e: {pv - sp}")
 
     def goToBall(self, delay=0.3, obj: data.Object = data.Object.Ball) -> None:
         self.log.info("Going to Ball...")
@@ -269,12 +177,13 @@ class Hunt:
             sleep(delay)
             pv = self.getObjectLocation(obj)
 
-            if pv[0] == None or pv[1] == None:
+            if pv[0] is None or pv[1] is None:
                 self.motors.stop()
                 return None
 
         self.log.info(f"Got to Object {obj.name} successfully... e: {pv[0] - sp[0]}, {pv[1] - sp[1]}")
         print(f"Got to Object {obj.name} successfully... e: {pv[0] - sp[0]}, {pv[1] - sp[1]}")
+        return None
 
     def getBallStatus(self) -> data.BallStatus:
         vcnl_prox = self.vcnl.proximity
@@ -307,11 +216,6 @@ class Hunt:
 
         return data.GoalStatus.FAR
 
-    def forwardForBall(self, delay=0.1):
-        self.motors.setSpeed(*tuple(motor.motor7046.calculate_speed(0, 40, 0)))
-        sleep(delay)
-        self.motors.stop()
-
     def getObjectLocation(self, obj: data.Object) -> tuple[float | None, float | None]:
         if obj == data.Object.Ball:
             return self.serial.getBallLocation()
@@ -322,20 +226,6 @@ class Hunt:
         return (None, None)
 
     def hunt(self):
-        # ballX, ballY = self.camSearch()
-        # if ballX or ballY:
-        #     # ball found
-        #     pass
-        # else: #ball not found
-        #     ballX, ballY = self.spinSearch()
-        #     if ballX or ballY:
-        #         #ball found
-        #         pass
-        #     else: # ball not found: returns to home.
-        #         return # TODO
-
-        # # at this point, ballX + ballY is the ball coordinates
-
         while True:
             self.check_pause()
             status = self.getBallStatus()
@@ -357,12 +247,12 @@ class Hunt:
             if status == data.BallStatus.VCNL_CLOSE:
                 print("Ball is Close!")
                 self.dribbler.start()
-                self.forwardForBall(0.1)
+                self.gyroMovement.move_forward_cm(15, 30)
 
             if status == data.BallStatus.CAM_DETECTED_AND_VCNL_CLOSE:
                 print("Ball is Close but not that much!")
                 self.dribbler.start()
-                self.forwardForBall(0.2)
+                self.gyroMovement.move_forward_cm(30, 30)
 
             if status == data.BallStatus.VCNL_IN_KICKER:
                 print("Ball in Kicker Position!")
@@ -390,52 +280,50 @@ class Hunt:
                             break
             self.motors.stop()
 
-        # input("First thing done. Waiting For Enter...")
-
     def __del__(self):
         self.motors.stop()
 
 
-class Keep:
-    def __init__(self):
-        # motors
-        self.i2c = I2C(data.I2C_ID)
-        self.servo = servo.Servo(data.SERVO_PIN, data.CHIP_ID)
-        self.motors = motor.multipleMotors(data.MOTOR_PINS, data.CHIP_ID, verbose=False, speedVerbose=True)
-
-        # sensors
-        self.gyro = gyro.MPU6050(self.i2c)
-        self.serial = serial7046.Serial7046(data.SERIAL_FREQUENCY)
-
-        # race conditions
-        # self.lock = threading.Lock()
-        # self.condition = threading.Condition(self.lock)
-        # self.priority_active = False
-
-        # processes
-        # self.lineDetection = edgeLineDetection.EdgeLineDetection(pins=data.TCRT_PINS, chipID=data.CHIP_ID, motors=self.motors, parent=self)
-        self.gyroMovement = gyroMovement.GyroMovement(self.i2c, self.gyro, self.motors,
-                                                      pidValues=[0.25, 0.01, 0.01, 500, 100, 100])
-
-        self.log = logging.LoggerAdapter(
-            logging.getLogger(__name__),
-            {'cls': self.__class__.__name__}
-        )
-
-    def trackBall(self):
-        self.log.info("Tracking Ball")
-        print("Tracking Ball")
-
-        pid = PidCalc(1.2, 0.2, 0.1, 150, 100, 500, verbose=False)
-
-        while True:
-            deltaX = self.serial.getBallLocation()[0]
-
-            if deltaX == 0:
-                continue
-
-            speedX = pid.pidCalc(deltaX)
-            self.motors.setSpeed(*tuple(motor.motor7046.calculate_speed(speedX, 0, 0)))
+# class Keep:
+#     def __init__(self):
+#         # motors
+#         self.i2c = I2C(data.I2C_ID)
+#         self.servo = servo.Servo(data.SERVO_PIN, data.CHIP_ID)
+#         self.motors = multipleMotors(data.MOTOR_PINS, data.CHIP_ID, verbose=False, speedVerbose=True)
+#
+#         # sensors
+#         self.gyro = gyro.MPU6050(self.i2c)
+#         self.serial = serial7046.Serial7046(data.SERIAL_FREQUENCY)
+#
+#         # race conditions
+#         # self.lock = threading.Lock()
+#         # self.condition = threading.Condition(self.lock)
+#         # self.priority_active = False
+#
+#         # processes
+#         # self.lineDetection = edgeLineDetection.EdgeLineDetection(pins=data.TCRT_PINS, chipID=data.CHIP_ID, motors=self.motors, parent=self)
+#         self.gyroMovement = gyroMovement.GyroMovement(self.i2c, self.gyro, self.motors,
+#                                                       pidValues=[0.25, 0.01, 0.01, 500, 100, 100])
+#
+#         self.log = logging.LoggerAdapter(
+#             logging.getLogger(__name__),
+#             {'cls': self.__class__.__name__}
+#         )
+#
+#     def trackBall(self):
+#         self.log.info("Tracking Ball")
+#         print("Tracking Ball")
+#
+#         pid = PidCalc(1.2, 0.2, 0.1, 150, 100, 500, verbose=False)
+#
+#         while True:
+#             deltaX = self.serial.getBallLocation()[0]
+#
+#             if deltaX == 0:
+#                 continue
+#
+#             speedX = pid.pidCalc(deltaX)
+#             self.motors.setSpeed(*tuple(motor.motor7046.calculate_speed(speedX, 0, 0)))
 
 
 if __name__ == "__main__":
@@ -452,8 +340,9 @@ if __name__ == "__main__":
         # r.spinToBall()
         r.hunt()
     else:
-        r = Keep()
+        pass
+        # r = Keep()
 
-        r.trackBall()
+        # r.trackBall()
     # except KeyboardInterrupt:
     #     r.motors.stop()

@@ -27,7 +27,7 @@ class Servo:
     def angle(self, angle: int):
         self.setAngle(angle)
 
-    def setAngle(self, angle: int, delay: int = 0.5):
+    def setAngle(self, angle: int, delay: float = 0.5):
         if angle < 0 or angle > 180:
             self.log.error("Error: angle must be between 0 and 180")
             raise Exception("Error: angle must be between 0 and 180")

@@ -7,7 +7,7 @@ TCRT_PINS: list[int] = [1, 0, 5]
 SERVO_PIN: int = 6
 RELAY_PIN: int = 7
 
-DRIBBLER_PIN: tuple[int, int] = (13, 16)
+DRIBBLER_PIN: tuple[int] = (13, 16)
 START_BUTTON_PIN: int = 4
 
 """----------------------------------------------
