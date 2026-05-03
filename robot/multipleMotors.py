@@ -1,4 +1,4 @@
-gimport motor
+import motor
 
 class multipleMotors:
     def __init__(self, pins: list[int], parent=None):
