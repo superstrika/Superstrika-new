@@ -1,4 +1,4 @@
-import motor
+import robot.components.motor as motor
 
 class multipleMotors:
     def __init__(self, pins: list[int], parent=None):

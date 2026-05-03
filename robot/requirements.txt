@@ -1,0 +1,5 @@
+smbus2
+board
+pyusb
+pyserial
+gpiozero
