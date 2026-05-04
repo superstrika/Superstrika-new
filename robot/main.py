@@ -30,11 +30,6 @@ class Hunt:
         self.condition = threading.Condition(self.lock)
         self.priority_active = False
 
-        # race conditions of servo
-        self.servoLock = threading.Lock()
-        self.servoCondition = threading.Condition(self.servoLock)
-        self.servoPriorityActive = False
-
         # exit gate
         self.running_gate = threading.Event()
         self.running_gate.clear()
@@ -58,7 +53,7 @@ class Hunt:
         # processes
         # self.lineDetection = edgeLineDetection.EdgeLineDetection(pins=data.TCRT_PINS, chipID=data.CHIP_ID, motors=self.motors, parent=self)
         self.gyroMovement = gyroMovement.GyroMovement(self.i2c, self.gyro, self.motors)
-        # mainSwitch7046.Switch7046(self, data.START_BUTTON_PIN)
+        mainSwitch7046.Switch7046(self, data.START_BUTTON_PIN)
 
         self.log = logging.LoggerAdapter(
             logging.getLogger(__name__),
