@@ -1,5 +1,4 @@
 import serial
-import os
 import logging
 
 class Camera7046:
@@ -20,7 +19,7 @@ class Camera7046:
             if self.ser.in_waiting > 0:
                 return self.ser.readline().decode('utf-8').rstrip()
 
-    def getBallLocation(self) -> tuple[float, float] | None:
+    def getBallLocation(self) -> tuple[float | None, float | None]:
         ballLocation: list[tuple[float, float]] = []
         try:
             self.ser.reset_input_buffer()
@@ -52,6 +51,7 @@ class Camera7046:
         except Exception as e:
             self.log.error(e)
             print(e)
+            return None, None
 
     def isBallDetected(self) -> bool:
         dis = self.getBallLocation()
@@ -59,7 +59,7 @@ class Camera7046:
             return False
         return True
 
-    def getBlueGoalLocation(self) -> tuple[float, float] | None:
+    def getBlueGoalLocation(self) -> tuple[float | None, float | None]:
         goalLocation: list[tuple[float, float]] = []
         try:
             for _ in range(5):
@@ -84,8 +84,9 @@ class Camera7046:
         except Exception as e:
             self.log.error(e)
             print(e)
+            return None, None
 
-    def getYellowGoalLocation(self) -> tuple[float, float] | None:
+    def getYellowGoalLocation(self) -> tuple[float | None, float | None]:
         goalLocation: list[tuple[float, float]] = []
         try:
             for _ in range(5):
@@ -110,8 +111,9 @@ class Camera7046:
         except Exception as e:
             self.log.error(e)
             print(e)
+            return None, None
 
-    def getGoalLocation(self, blueGoal: bool) -> tuple[float, float] | None:
+    def getGoalLocation(self, blueGoal: bool) -> tuple[float | None, float | None]:
         if blueGoal:
             return self.getBlueGoalLocation()
         return self.getYellowGoalLocation()

@@ -14,76 +14,118 @@ class EdgeLineDetection:
         else:
             self.motors = multipleMotors.multipleMotors(data.MOTOR_PINS)
 
-        self.leftIRQ = gpiozero.Button(pins[0])
-        self.leftIRQ.when_activated = self.leftIRQ
+        # Line detection flags (True = line detected)
+        self.line_detected = {
+            'left': False,
+            'right': False,
+            'forward': False
+        }
+        self.flags_lock = threading.Lock()
+        self.escape_lock = threading.Lock()
 
-        self.rightIRQ = gpiozero.Button(pins[1])
-        self.rightIRQ.when_activated = self.rightIRQ
+        self.currently_escaping = False
 
-        self.forwardIRQ = gpiozero.Button(pins[2])
-        self.forwardIRQ.when_activated = self.forwardIRQ
+        # Setup gpiozero buttons with correct callbacks
+        self.leftIRQ = gpiozero.Button(pins[0], bounce_time=0.05)
+        self.leftIRQ.when_pressed = self.on_left_line_detected
+        self.leftIRQ.when_released = self.on_left_line_cleared
+
+        self.rightIRQ = gpiozero.Button(pins[1], bounce_time=0.05)
+        self.rightIRQ.when_pressed = self.on_right_line_detected
+        self.rightIRQ.when_released = self.on_right_line_cleared
+
+        self.forwardIRQ = gpiozero.Button(pins[2], bounce_time=0.05)
+        self.forwardIRQ.when_pressed = self.on_forward_line_detected
+        self.forwardIRQ.when_released = self.on_forward_line_cleared
 
         if not parent:
             raise Exception("This process is an orphan :(")
         self.parent = parent
-
-        self.escape_lock = threading.Lock()
 
         self.log = logging.LoggerAdapter(
             logging.getLogger(__name__),
             {'cls': self.__class__.__name__}
         )
 
-    def escapeLeft(self):
+    # Left sensor callbacks
+    def on_left_line_detected(self):
+        with self.flags_lock:
+            if not self.line_detected['left']:
+                self.line_detected['left'] = True
+                self.log.warning("Left line detected!")
+                self._trigger_escape()
+
+    def on_left_line_cleared(self):
+        with self.flags_lock:
+            self.line_detected['left'] = False
+            self.log.info("Left line cleared")
+
+    # Right sensor callbacks
+    def on_right_line_detected(self):
+        with self.flags_lock:
+            if not self.line_detected['right']:
+                self.line_detected['right'] = True
+                self.log.warning("Right line detected!")
+                self._trigger_escape()
+
+    def on_right_line_cleared(self):
+        with self.flags_lock:
+            self.line_detected['right'] = False
+            self.log.info("Right line cleared")
+
+    # Forward sensor callbacks
+    def on_forward_line_detected(self):
+        with self.flags_lock:
+            if not self.line_detected['forward']:
+                self.line_detected['forward'] = True
+                self.log.warning("Forward line detected!")
+                self._trigger_escape()
+
+    def on_forward_line_cleared(self):
+        with self.flags_lock:
+            self.line_detected['forward'] = False
+            self.log.info("Forward line cleared")
+
+    def _trigger_escape(self):
+        """Execute escape in a separate thread to avoid blocking sensor callbacks"""
+        thread = threading.Thread(target=self._execute_escape, daemon=True)
+        thread.start()
+
+    def _execute_escape(self):
+        """Execute escape maneuver"""
         with self.escape_lock:
-            print(f"Escaping left: {data.TCRT_PINS[0]}")
-            speeds = motor.motor7046.calculate_speed(-100, 0, 0)
+            if self.currently_escaping:
+                return
+            self.currently_escaping = True
 
-            with self.parent.condition:
-                self.parent.priority_active = True
+            if self.line_detected['left'] and self.line_detected['right'] and self.line_detected['forward']:
+                self.log.error("All TCRT detects a line! Please recalibrate the sensors")
+                raise Exception("All TCRT detects a line! Please recalibrate the sensors")
 
-                self.motors.setSpeed(*(tuple(speeds)), bypass_priority=True)
+            # TODO: If 'left' + 'right' could be forward or backward
+            if self.line_detected['left'] and self.line_detected['right']:
+                speeds = motor.motor7046.calculate_speed(0, 100, 0)
+                self.log.warning("Left and right escape detected! Escaping Forward!")
+
+            elif self.line_detected['left']:
+                speeds = motor.motor7046.calculate_speed(-100, 0, 0)
                 self.log.warning("Escaping left!")
-                sleep(0.15)
-                self.motors.stop()
 
-                self.parent.priority_active = False
-                self.parent.condition.notify_all()
-
-    def escapeRight(self):
-        with self.escape_lock:
-            print(f"Escaping right: {data.TCRT_PINS[1]}")
-            speeds = motor.motor7046.calculate_speed(100, 0, 0)
-
-            with self.parent.condition:
-                self.parent.priority_active = True
-
-                self.motors.setSpeed(*(tuple(speeds)), bypass_priority=True)
+            elif self.line_detected['right']:
+                speeds = motor.motor7046.calculate_speed(100, 0, 0)
                 self.log.warning("Escaping right!")
-                sleep(0.15)
-                self.motors.stop()
 
-                self.parent.priority_active = False
-                self.parent.condition.notify_all()
-
-    def escapeForward(self):
-        with self.escape_lock:
-            print(f"Escaping forward: {data.TCRT_PINS[2]}")
-            speeds = motor.motor7046.calculate_speed(0, 100, 0)
+            elif self.line_detected['forward']:
+                speeds = motor.motor7046.calculate_speed(0, 100, 0)
+                self.log.warning("Escaping forward!")
 
             with self.parent.condition:
                 self.parent.priority_active = True
 
                 self.motors.setSpeed(*(tuple(speeds)), bypass_priority=True)
-                self.log.warning("Escaping Forward!")
                 sleep(0.15)
                 self.motors.stop()
 
                 self.parent.priority_active = False
                 self.parent.condition.notify_all()
-
-if __name__ == "__main__":
-    e = EdgeLineDetection(data.TCRT_PINS)
-
-    while True:
-        sleep(0.1)
+            self.currently_escaping = False

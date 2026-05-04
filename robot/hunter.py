@@ -1,6 +1,8 @@
 import components.servo as servo
 import components.motor as motor
 from time import sleep
+
+import gpiozero
 import processes.EdgeLineDetection as EdgeLineDetection
 import components.gyro as gyro
 import components.dribbler as dribbler
@@ -13,7 +15,6 @@ from processes.pidCalc import PidCalc
 import processes.gyroMovement as gyroMovement
 import processes.multipleMotors as multipleMotors
 import threading
-import math
 
 try:
     from machine import I2C
@@ -42,7 +43,7 @@ class Hunt:
 
         # sensors
         self.gyro = gyro.MPU6050(self.i2c)
-        self.serial = camera.Camera7046(data.SERIAL_FREQUENCY)
+        self.camera = camera.Camera7046(data.SERIAL_FREQUENCY)
 
         # vcnl
         self.vcnl = VCNL()
@@ -51,19 +52,32 @@ class Hunt:
         self.vcnl.proximity_integration_time = self.vcnl.PS_8T
 
         # processes
-        # self.lineDetection = edgeLineDetection.EdgeLineDetection(pins=data.TCRT_PINS, chipID=data.CHIP_ID, motors=self.motors, parent=self)
+        self.lineDetection = EdgeLineDetection.EdgeLineDetection(pins=data.TCRT_PINS, motors=self.motors, parent=self)
         self.gyroMovement = gyroMovement.GyroMovement(self.i2c, self.gyro, self.motors)
-        mainSwitch7046.Switch7046(self, data.START_BUTTON_PIN)
+
+        # main switch
+        self.startSwitch = gpiozero.Button(data.START_BUTTON_PIN, bounce_time=0.05)
+        self.startSwitch.when_activated = self.toggle_pause
 
         self.log = logging.LoggerAdapter(
             logging.getLogger(__name__),
             {'cls': self.__class__.__name__}
         )
 
+    def toggle_pause(self):
+        if self.running_gate.is_set():
+            print("[!] PAUSING")
+            self.running_gate.clear()
+            self.motors.setSpeed(0, 0, 0, 0)
+
+        else:
+            print("\n[>] RESUMING")
+            self.running_gate.set()
+
     def check_pause(self, timeout=None):
         return self.running_gate.wait(timeout=timeout)
 
-    def camSearch(self, delay=0.3) -> tuple[float, float] | None:
+    def camSearch(self, delay=0.3) -> tuple[float | None, float | None]:
         """
         Changes camera angle until ball is found.
         :param delay: the delay each change of angle.
@@ -79,7 +93,7 @@ class Hunt:
 
             self.servo.setAngle(angle, delay * ((data.MAX_ANGLE - angle) / data.MIN_ANGLE))
 
-            ballX, ballY = self.serial.getBallLocation()
+            ballX, ballY = self.camera.getBallLocation()
             if ballX != 0 or ballY != 0:
                 self.log.info(f"Ball Found: {ballX}, {ballY}")
                 print(f"Ball Found: {ballX}, {ballY}")
@@ -87,7 +101,7 @@ class Hunt:
 
         self.log.info("Camera Search failed...")
         print("Camera Search failed...")
-        return None
+        return None, None
 
     def spinSearch(self, delay=0.25, right: bool = True, obj: data.Object = data.Object.Ball) -> bool | None:
         """
@@ -153,10 +167,9 @@ class Hunt:
         pv = self.getObjectLocation(obj)  # distance
         print(f"{pv=}")
 
-        if not pv[0] or not pv[1]:
+        if pv[0] is None or pv[1] is None:
             self.motors.stop()
             return None
-            # pv = self.serial.getBallLocation()
 
         while (abs(pv[0] - sp[0]) > data.GO_TO_BALL_ERROR) or (abs(pv[1] - sp[1]) > data.GO_TO_BALL_ERROR):
             if not self.running_gate.is_set():  # ------------------------------------------------------------------- Check if end button was pressed.
@@ -182,7 +195,7 @@ class Hunt:
 
     def getBallStatus(self) -> data.BallStatus:
         vcnl_prox = self.vcnl.proximity
-        cam_dist = self.serial.getBallLocation()
+        cam_dist = self.camera.getBallLocation()
         print(f"{cam_dist=}, {vcnl_prox=}")
 
         cam_found = True if cam_dist[0] and cam_dist[1] else False
@@ -211,14 +224,14 @@ class Hunt:
 
         return data.GoalStatus.FAR
 
-    def getObjectLocation(self, obj: data.Object) -> tuple[float | None, float | None]:
+    def getObjectLocation(self, obj: data.Object) -> tuple[float | None, float | None] | tuple[None, None]:
         if obj == data.Object.Ball:
-            return self.serial.getBallLocation()
+            return self.camera.getBallLocation()
         elif obj == data.Object.YellowGoal:
-            return self.serial.getYellowGoalLocation()
+            return self.camera.getYellowGoalLocation()
         elif obj == data.Object.BlueGoal:
-            return self.serial.getBlueGoalLocation()
-        return (None, None)
+            return self.camera.getBlueGoalLocation()
+        return None, None
 
     def hunt(self):
         while True:
@@ -278,66 +291,6 @@ class Hunt:
     def __del__(self):
         self.motors.stop()
 
-
-# class Keep:
-#     def __init__(self):
-#         # motors
-#         self.i2c = I2C(data.I2C_ID)
-#         self.servo = servo.Servo(data.SERVO_PIN, data.CHIP_ID)
-#         self.motors = multipleMotors(data.MOTOR_PINS, data.CHIP_ID, verbose=False, speedVerbose=True)
-#
-#         # sensors
-#         self.gyro = gyro.MPU6050(self.i2c)
-#         self.serial = serial7046.Serial7046(data.SERIAL_FREQUENCY)
-#
-#         # race conditions
-#         # self.lock = threading.Lock()
-#         # self.condition = threading.Condition(self.lock)
-#         # self.priority_active = False
-#
-#         # processes
-#         # self.lineDetection = edgeLineDetection.EdgeLineDetection(pins=data.TCRT_PINS, chipID=data.CHIP_ID, motors=self.motors, parent=self)
-#         self.gyroMovement = gyroMovement.GyroMovement(self.i2c, self.gyro, self.motors,
-#                                                       pidValues=[0.25, 0.01, 0.01, 500, 100, 100])
-#
-#         self.log = logging.LoggerAdapter(
-#             logging.getLogger(__name__),
-#             {'cls': self.__class__.__name__}
-#         )
-#
-#     def trackBall(self):
-#         self.log.info("Tracking Ball")
-#         print("Tracking Ball")
-#
-#         pid = PidCalc(1.2, 0.2, 0.1, 150, 100, 500, verbose=False)
-#
-#         while True:
-#             deltaX = self.serial.getBallLocation()[0]
-#
-#             if deltaX == 0:
-#                 continue
-#
-#             speedX = pid.pidCalc(deltaX)
-#             self.motors.setSpeed(*tuple(motor.motor7046.calculate_speed(speedX, 0, 0)))
-
-
 if __name__ == "__main__":
-    # try:
-    if data.SELF_IS_HUNTER:
-        r = Hunt()
-        # r.spinSearch(0.25)
-        # r.spinToBall()
-        # r.camSearch(delay=0.3)
-        # r.spinToBall()
-        # while True:
-        #     pass
-        # r.spinSearch()
-        # r.spinToBall()
-        r.hunt()
-    else:
-        pass
-        # r = Keep()
-
-        # r.trackBall()
-    # except KeyboardInterrupt:
-    #     r.motors.stop()
+    r = Hunt()
+    r.hunt()

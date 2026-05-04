@@ -1,5 +1,4 @@
 import gpiozero
-import math
 import logging
 
 class motor7046:
@@ -87,5 +86,5 @@ class motor7046:
         elif speed < -100:
             speed = -100
 
-        return [-speed for i in range(4)]  # [speed, speed, speed, speed]
+        return [-speed for _ in range(4)]  # [speed, speed, speed, speed]
 

@@ -3,7 +3,7 @@ from time import sleep
 import logging
 
 class Servo:
-    def __init__(self, pin: int, chipID: int = 0):
+    def __init__(self, pin: int):
         self.FREQ = 50
 
         self.servoAngle = 0
