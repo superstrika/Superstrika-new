@@ -1,0 +1,8 @@
+{
+  "host": "0.0.0.0",
+  "port": 8080,
+  "python_executable": "/home/superstrika/cubie-1/Superstrika/venv/bin/python",
+  "script": "/home/superstrika/cubie-1/Superstrika/src/my_robot_package/my_robot_package/console/sample_task.py",
+  "args": [],
+  "log_file": "console.log"
+}
