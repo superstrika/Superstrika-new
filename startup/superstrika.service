@@ -1,0 +1,14 @@
+[Unit]
+Description=Console Web Viewer Running Superstrika Robot
+After=local-fs.target
+
+[Service]
+Type=simple
+User=admin
+WorkingDirectory=/home/admin/Superstrika/
+ExecStart=/home/admin/Superstrika/venv/bin/python /home/admin/Superstrika/robot/console/server.py
+Restart=always
+RestartSec=1
+
+[Install]
+WantedBy=multi-user.target
