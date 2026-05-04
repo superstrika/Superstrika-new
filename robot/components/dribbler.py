@@ -1,7 +1,7 @@
 import motor
 
 class Dribbler:
-    def __init__(self, pins: tuple[int]):
+    def __init__(self, pins: tuple[int, int]):
         self.dribbler = motor.motor7046(*pins)
 
     def start(self):

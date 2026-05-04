@@ -6,7 +6,6 @@ import gpiozero
 import processes.EdgeLineDetection as EdgeLineDetection
 import components.gyro as gyro
 import components.dribbler as dribbler
-# import input7046
 import consts.data as data
 from components.vcnl import VCNL4040 as VCNL
 import logging
@@ -37,7 +36,7 @@ class Hunt:
 
         # motors
         self.i2c = I2C(data.I2C_ID)
-        self.servo = servo.Servo(data.SERVO_PIN, data.CHIP_ID)
+        self.servo = servo.Servo(data.SERVO_PIN)
         self.motors = multipleMotors.multipleMotors(data.MOTOR_PINS, parent=self)
         self.dribbler = dribbler.Dribbler(data.DRIBBLER_PIN)
 
