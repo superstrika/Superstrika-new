@@ -154,7 +154,7 @@ class Hunt:
         print("Spin search failed...")
         return False
 
-    def goToBall(self, delay=0.3, obj: data.Object = data.Object.Ball) -> None:
+    def goToBall(self, delay=0.005, obj: data.Object = data.Object.Ball) -> None:
         self.log.info("Going to Ball...")
         print("Going to Ball...")
         sp = data.ROBOT_BALL_DISTANCE if obj == data.Object.Ball else data.ROBOT_GOAL_DISTANCE
@@ -180,7 +180,6 @@ class Hunt:
 
             self.motors.setSpeed(speedX, speedY, 0)
 
-            sleep(delay)
             pv = self.getObjectLocation(obj)
 
             if pv[0] is None or pv[1] is None:
