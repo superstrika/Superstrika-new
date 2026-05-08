@@ -27,7 +27,7 @@ class GyroMovement:
             self.motors = multipleMotors(data.MOTOR_PINS)
 
 
-    def spinToAngle(self, setPoint: int, pidValues: tuple[float]=(0.35, 0.15, 0.01, 10, 100, 100), errorOffset: float=0.5) -> None:
+    def spinToAngle(self, setPoint: int, pidValues: tuple=(0.35, 0.15, 0.01, 100), errorOffset: float=0.5) -> None:
         pid = PidCalc(*pidValues)
         error: float = setPoint - self.gyro.get_z_angle()
 
@@ -46,7 +46,7 @@ class GyroMovement:
             sleep(0.3)
             error: float = setPoint - self.gyro.get_z_angle()
 
-    def move_forward_cm(self, distance_cm: float, speed=30, pidValues: tuple[float]=(1.5, 0.01, 0.1, 100, 100, 500)):
+    def move_forward_cm(self, distance_cm: float, speed=30, pidValues: tuple=(1.5, 0.01, 0.1, 100)):
         """
         Moves the robot forward for a specified distance with gyro heading correction.
         Note: This implementation uses time as a proxy for distance.

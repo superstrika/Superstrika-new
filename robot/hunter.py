@@ -160,8 +160,8 @@ class Hunt:
         print("Going to Ball...")
         sp = data.ROBOT_BALL_DISTANCE if obj == data.Object.Ball else data.ROBOT_GOAL_DISTANCE
 
-        pidY = PidCalc(0.6, 0, 0, 100, 100, 500, verbose=False)
-        pidX = PidCalc(0.01, 0, 0.1, 100, 100, 500, verbose=False)
+        pidY = PidCalc(0.6, 0, 0, 100, verbose=False)
+        pidX = PidCalc(0.01, 0, 0.1, 100, verbose=False)
 
         pv = self.getObjectLocation(obj)  # distance
         print(f"{pv=}")
