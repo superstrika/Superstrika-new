@@ -30,10 +30,29 @@ class multipleMotors:
                     print("Waiting for interrupt...")
                     self.parent.condition.wait()
 
-    def setSpeed(self, V1, V2, V3, V4, bypass_priority=False):
-        self.waitForLock(bypass_priority)
+    def setSpeed(self, Vx: float, Vy: float, rotation: float, bypass_priority: bool=False):
+        self.waitForLock(bypass_priority=bypass_priority)
 
-        self.motors[0].speed = V1
-        self.motors[1].speed = V2
-        self.motors[2].speed = V3
-        self.motors[3].speed = V4
+        # Front Left
+        wheel1_speed = Vy - Vx + rotation
+        # Front Right
+        wheel2_speed = Vx + Vy + rotation
+        # Rear Left
+        wheel3_speed = Vx - Vy + rotation
+        # Rear Right
+        wheel4_speed = -Vx - Vy + rotation
+
+        speeds = [wheel1_speed, wheel2_speed, wheel3_speed, wheel4_speed]
+
+        for i in range(len(self.motors)):
+            self.motors[i].speed = speeds[i] if speeds[i] > 1 else 0
+
+    def setMotorOn(self, motorIndex: int, speed: int = 100):
+        if motorIndex > 3 or motorIndex < 0:
+            raise ValueError("Motor index out of range")
+
+        for i in range(len(self.motors)):
+            if i == motorIndex:
+                self.motors[i].speed = speed
+            else:
+                self.motors[i].speed = 0

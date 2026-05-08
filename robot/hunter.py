@@ -67,7 +67,7 @@ class Hunt:
         if self.running_gate.is_set():
             print("[!] PAUSING")
             self.running_gate.clear()
-            self.motors.setSpeed(0, 0, 0, 0)
+            self.motors.stop()
 
         else:
             print("\n[>] RESUMING")
@@ -118,8 +118,7 @@ class Hunt:
         self.gyro.reset_theta()
 
         startAngle = self.gyro.get_z_angle()
-        speeds = motor.motor7046.calculate_rotation_speed(speed)
-        self.motors.setSpeed(*tuple(speeds))
+        self.motors.setSpeed(0, 0, speed)
         sleep(delay)
         self.motors.stop()
         print(f"DEBUG: start Angle: {startAngle}")
@@ -143,7 +142,7 @@ class Hunt:
                 print(f"Object {obj.name} Found")
                 return True
 
-            self.motors.setSpeed(*tuple(speeds))
+            self.motors.setSpeed(0, 0, speed)
             sleep(delay)
 
             angle = self.gyro.get_z_angle()
@@ -179,7 +178,7 @@ class Hunt:
 
             print(f"Vx: {speedX}, Vy: {speedY}")
 
-            self.motors.setSpeed(*tuple(motor.motor7046.calculate_speed(speedX, speedY, 0)))
+            self.motors.setSpeed(speedX, speedY, 0)
 
             sleep(delay)
             pv = self.getObjectLocation(obj)

@@ -60,31 +60,3 @@ class motor7046:
         self.mot1.value = 0
         self.mot2.value = 0
 
-    @staticmethod
-    def calculate_speed(Vx, Vy, rotation):
-        # Front Left
-        wheel1_speed = Vy - Vx + rotation
-        # Front Right
-        wheel2_speed = Vx + Vy - rotation
-        # Rear Left
-        wheel3_speed = Vx - Vy + rotation
-        # Rear Right
-        wheel4_speed = -Vx - Vy - rotation
-
-        speeds = [wheel1_speed, wheel2_speed, wheel3_speed, wheel4_speed]
-
-        max_val = max(list(map(abs, speeds)) + [100])
-
-        normalized_speeds = [(s / max_val) * 100 for s in speeds]
-
-        return [(i if abs(i) > 1 else 0) for i in normalized_speeds]
-
-    @staticmethod
-    def calculate_rotation_speed(speed):
-        if speed > 100:
-            speed = 100
-        elif speed < -100:
-            speed = -100
-
-        return [-speed for _ in range(4)]  # [speed, speed, speed, speed]
-

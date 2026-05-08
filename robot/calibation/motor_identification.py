@@ -6,15 +6,9 @@ def main() -> None:
     motors = multipleMotors(data.MOTOR_PINS)
     speed = -100
 
-    print(speed)
-    motors.setSpeed(speed, 0, 0, 0)
-    input()
-    motors.setSpeed(0, speed, 0, 0)
-    input()
-    motors.setSpeed(0, 0, speed, 0)
-    input()
-    motors.setSpeed(0, 0, 0, speed)
-    input()
+    for i in range(4):
+        motors.setMotorOn(i, speed)
+        input("Press Enter to continue...")
 
 if __name__ == "__main__":
     main()

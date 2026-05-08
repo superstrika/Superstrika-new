@@ -40,8 +40,7 @@ class GyroMovement:
             if -10 > speed > -30:
                 speed -= 20
 
-            speeds: list[int] = motor7046.calculate_rotation_speed(speed)
-            self.motors.setSpeed(*tuple(speeds))
+            self.motors.setSpeed(0, 0, speed)
 
             sleep(0.3)
             error: float = setPoint - self.gyro.get_z_angle()
@@ -64,8 +63,7 @@ class GyroMovement:
                 current_heading = self.gyro.get_z_angle()
                 correction = pid.pidCalc(target_heading - current_heading)
 
-                motor_speeds = motor.motor7046.calculate_speed(0, speed, correction)
-                self.motors.setSpeed(*motor_speeds)
+                self.motors.setSpeed(0, speed, correction)
                 time.sleep(0.01)
         finally:
             self.motors.stop()

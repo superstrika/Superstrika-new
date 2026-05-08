@@ -104,25 +104,25 @@ class EdgeLineDetection:
 
             # TODO: If 'left' + 'right' could be forward or backward
             if self.line_detected['left'] and self.line_detected['right']:
-                speeds = motor.motor7046.calculate_speed(0, 100, 0)
+                speeds = (0, 100, 0)
                 self.log.warning("Left and right escape detected! Escaping Forward!")
 
             elif self.line_detected['left']:
-                speeds = motor.motor7046.calculate_speed(-100, 0, 0)
+                speeds = (-100, 0, 0)
                 self.log.warning("Escaping left!")
 
             elif self.line_detected['right']:
-                speeds = motor.motor7046.calculate_speed(100, 0, 0)
+                speeds = (100, 0, 0)
                 self.log.warning("Escaping right!")
 
             elif self.line_detected['forward']:
-                speeds = motor.motor7046.calculate_speed(0, 100, 0)
+                speeds = (0, 100, 0)
                 self.log.warning("Escaping forward!")
 
             with self.parent.condition:
                 self.parent.priority_active = True
 
-                self.motors.setSpeed(*(tuple(speeds)), bypass_priority=True)
+                self.motors.setSpeed(*speeds, bypass_priority=True)
                 sleep(0.15)
                 self.motors.stop()
 
