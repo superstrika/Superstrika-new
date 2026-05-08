@@ -41,13 +41,13 @@ class PidCalc:
             self.lastTime = time.time()
 
             if self.verbose:
-                print(f"Integral: {self.integral}")
-                print(f"Derivative: {derivative}")
-                print(f"Error: {error}")
-                print(f"Out: {out}")
-                print(f"Last Error: {self.prevError}")
-                print(f"Dt: {dt}")
-                print("----------------------------------------------")
+                self.log.debug(f"Integral: {self.integral}")
+                self.log.debug(f"Derivative: {derivative}")
+                self.log.debug(f"Error: {error}")
+                self.log.debug(f"Out: {out}")
+                self.log.debug(f"Last Error: {self.prevError}")
+                self.log.debug(f"Dt: {dt}")
+                self.log.debug("----------------------------------------------")
 
             return max(-self.maxSpeed, min(out, self.maxSpeed))
         return 0

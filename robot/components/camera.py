@@ -29,7 +29,6 @@ class Camera7046:
                 response: list[float] = response.split('#')
                 for i in range(len(response)):
                     response[i] = float(response[i])
-                print((response[0], response[1]))
                 ballLocation.append((response[0], response[1]))
 
             avgX: float | None = 0
@@ -50,7 +49,6 @@ class Camera7046:
 
         except Exception as e:
             self.log.error(e)
-            print(e)
             return None, None
 
     def isBallDetected(self) -> bool:
@@ -83,7 +81,6 @@ class Camera7046:
 
         except Exception as e:
             self.log.error(e)
-            print(e)
             return None, None
 
     def getYellowGoalLocation(self) -> tuple[float | None, float | None]:
@@ -110,7 +107,6 @@ class Camera7046:
 
         except Exception as e:
             self.log.error(e)
-            print(e)
             return None, None
 
     def getGoalLocation(self, blueGoal: bool) -> tuple[float | None, float | None]:

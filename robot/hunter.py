@@ -1,7 +1,6 @@
+import sys
 import components.servo as servo
-import components.motor as motor
 from time import sleep
-
 import gpiozero
 import processes.EdgeLineDetection as EdgeLineDetection
 import components.gyro as gyro
@@ -22,9 +21,8 @@ except ImportError:
 
 logging.basicConfig(filename=data.LOG_PATH, filemode='w', level=logging.DEBUG, format=data.LOG_FORMAT)
 
-
 class Hunt:
-    def __init__(self):
+    def __init__(self, debug=False):
         # race conditions of motors
         self.lock = threading.RLock()
         self.condition = threading.Condition(self.lock)
@@ -63,14 +61,19 @@ class Hunt:
             {'cls': self.__class__.__name__}
         )
 
+        if debug:
+            console_handler = logging.StreamHandler(sys.stdout)
+            console_handler.setFormatter(logging.Formatter(data.LOG_FORMAT))
+            self.log.logger.addHandler(console_handler)
+
     def toggle_pause(self):
         if self.running_gate.is_set():
-            print("[!] PAUSING")
+            self.log.info("[!] PAUSING")
             self.running_gate.clear()
             self.motors.stop()
 
         else:
-            print("\n[>] RESUMING")
+            self.log.info("[>] RESUMING")
             self.running_gate.set()
 
     def check_pause(self, timeout=None):
@@ -84,7 +87,6 @@ class Hunt:
         """
 
         self.log.info("Initializing Camera Search...")
-        print("Initializing Camera Search...")
 
         self.servo.angle = data.MAX_ANGLE
 
@@ -95,11 +97,9 @@ class Hunt:
             ballX, ballY = self.camera.getBallLocation()
             if ballX != 0 or ballY != 0:
                 self.log.info(f"Ball Found: {ballX}, {ballY}")
-                print(f"Ball Found: {ballX}, {ballY}")
                 return ballX, ballY
 
         self.log.info("Camera Search failed...")
-        print("Camera Search failed...")
         return None, None
 
     def spinSearch(self, delay=0.25, right: bool = True, obj: data.Object = data.Object.Ball) -> bool | None:
@@ -113,7 +113,6 @@ class Hunt:
         speed = data.ROTATION_SPEED if right else -data.ROTATION_SPEED
 
         self.log.info("Initializing Spin Search...")
-        print("Initializing Spin Search...")
 
         self.gyro.reset_theta()
 
@@ -121,12 +120,8 @@ class Hunt:
         self.motors.setSpeed(0, 0, speed)
         sleep(delay)
         self.motors.stop()
-        print(f"DEBUG: start Angle: {startAngle}")
 
         angle = self.gyro.get_z_angle()
-        # print(f"DEBUG: Start angle: {angle}")
-        # print(f"DEBUG: startAngle: {startAngle}")
-        # print(f"DEBUG: error: {data.SPIN_SEARCH_ERROR}")
         while abs(angle) < 360:
             if not self.running_gate.is_set():  # ------------------------------------------------------------------- Check if end button was pressed.
                 return None
@@ -139,31 +134,27 @@ class Hunt:
 
             if end:
                 self.log.info(f"Object {obj.name} Found")
-                print(f"Object {obj.name} Found")
                 return True
 
             self.motors.setSpeed(0, 0, speed)
             sleep(delay)
 
             angle = self.gyro.get_z_angle()
-            print(f"The angle: {angle}")
 
             self.motors.stop()
 
         self.log.info("Spin search failed...")
-        print("Spin search failed...")
         return False
 
     def goToBall(self, delay=0.005, obj: data.Object = data.Object.Ball) -> None:
         self.log.info("Going to Ball...")
-        print("Going to Ball...")
         sp = data.ROBOT_BALL_DISTANCE if obj == data.Object.Ball else data.ROBOT_GOAL_DISTANCE
 
         pidY = PidCalc(0.6, 0, 0, 100, verbose=False)
         pidX = PidCalc(0.01, 0, 0.1, 100, verbose=False)
 
         pv = self.getObjectLocation(obj)  # distance
-        print(f"{pv=}")
+        self.log.debug(f"{pv=}")
 
         if pv[0] is None or pv[1] is None:
             self.motors.stop()
@@ -176,7 +167,7 @@ class Hunt:
             speedX = pidX.pidCalc(pv[0] - sp[0])
             speedY = max(pidY.pidCalc(pv[1] - sp[1]), 25)
 
-            print(f"Vx: {speedX}, Vy: {speedY}")
+            self.log.debug(f"Vx: {speedX}, Vy: {speedY}")
 
             self.motors.setSpeed(speedX, speedY, 0)
 
@@ -187,13 +178,12 @@ class Hunt:
                 return None
 
         self.log.info(f"Got to Object {obj.name} successfully... e: {pv[0] - sp[0]}, {pv[1] - sp[1]}")
-        print(f"Got to Object {obj.name} successfully... e: {pv[0] - sp[0]}, {pv[1] - sp[1]}")
         return None
 
     def getBallStatus(self) -> data.BallStatus:
         vcnl_prox = self.vcnl.proximity
         cam_dist = self.camera.getBallLocation()
-        print(f"{cam_dist=}, {vcnl_prox=}")
+        self.log.debug(f"{cam_dist=}, {vcnl_prox=}")
 
         cam_found = True if cam_dist[0] and cam_dist[1] else False
         if vcnl_prox < data.VCNL_PROX_NOT_DETECTED and not cam_found:
@@ -236,12 +226,12 @@ class Hunt:
             status = self.getBallStatus()
 
             if status == data.BallStatus.CAM_DETECTED:
-                print("Ball Detected!")
+                self.log.info("Ball Detected!")
                 self.dribbler.stop()
                 self.goToBall()
 
             if status == data.BallStatus.NOT_FOUND:
-                print("Ball Not Found!")
+                self.log.info("Ball Not Found!")
                 self.servo.angle = data.GOOD_ANGLE
                 self.dribbler.stop()
                 if not self.spinSearch():
@@ -250,17 +240,17 @@ class Hunt:
                         self.gyroMovement.move_forward_cm(30, 30)
 
             if status == data.BallStatus.VCNL_CLOSE:
-                print("Ball is Close!")
+                self.log.info("Ball is Close!")
                 self.dribbler.start()
                 self.gyroMovement.move_forward_cm(15, 30)
 
             if status == data.BallStatus.CAM_DETECTED_AND_VCNL_CLOSE:
-                print("Ball is Close but not that much!")
+                self.log.info("Ball is Close but not that much!")
                 self.dribbler.start()
                 self.gyroMovement.move_forward_cm(30, 30)
 
             if status == data.BallStatus.VCNL_IN_KICKER:
-                print("Ball in Kicker Position!")
+                self.log.info("Ball in Kicker Position!")
                 self.dribbler.start()
                 obj: data.Object = data.Object.YellowGoal if data.SELF_IS_BLUE else data.Object.YellowGoal
 
@@ -268,19 +258,19 @@ class Hunt:
                     goalStatus = self.getGoalStatus(obj)
 
                     if goalStatus == data.GoalStatus.NOT_FOUND:
-                        print("Searching for goal!")
+                        self.log.info("Searching for goal!")
                         self.spinSearch(obj=obj)
 
                     if goalStatus == data.GoalStatus.FAR:
-                        print("Going to Goal!")
+                        self.log.info("Going to Goal!")
                         self.goToBall(obj=obj)
 
                     if goalStatus == data.GoalStatus.CLOSE:
-                        print("Kicked Ball!!!!!")
+                        self.log.info("Kicked Ball!!!!!")
                         self.dribbler.counterStart()
                         sleep(0.4)
                         if self.getBallStatus() == data.BallStatus.CAM_DETECTED:
-                            print("Goal!!!!! Game finished!")
+                            self.log.info("Goal!!!!! Game finished!")
                         else:
                             break
             self.motors.stop()

@@ -26,7 +26,6 @@ class GyroMovement:
         else:
             self.motors = multipleMotors(data.MOTOR_PINS)
 
-
     def spinToAngle(self, setPoint: int, pidValues: tuple=(0.35, 0.15, 0.01, 100), errorOffset: float=0.5) -> None:
         pid = PidCalc(*pidValues)
         error: float = setPoint - self.gyro.get_z_angle()

@@ -114,7 +114,6 @@ class MPU6050:
         offset = {axis: val / samples for axis, val in offset.items()}
 
         self.log.debug(f"Calibration complete. \u03c9 offset: {offset}")
-        print("Calibration complete. \u03c9 offset:", offset)
 
         return offset
 

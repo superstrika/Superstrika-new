@@ -1,3 +1,4 @@
+import logging
 import robot.components.motor as motor
 
 class multipleMotors:
@@ -11,6 +12,11 @@ class multipleMotors:
         motor4 = motor.motor7046(pins[6], pins[7], switch=True)
 
         self.motors: list[motor.motor7046] = [motor1, motor2, motor3, motor4]
+
+        self.log = logging.LoggerAdapter(
+            logging.getLogger(__name__),
+            {'cls': self.__class__.__name__}
+        )
 
     def stop(self, bypass_priority=False):
         self.waitForLock(bypass_priority)
@@ -27,7 +33,7 @@ class multipleMotors:
         if self.parent and not bypass_priority:
             with self.parent.condition:
                 while self.parent.priority_active:
-                    print("Waiting for interrupt...")
+                    self.log.warning("Waiting for interrupt...")
                     self.parent.condition.wait()
 
     def setSpeed(self, Vx: float, Vy: float, rotation: float, bypass_priority: bool=False):

@@ -36,7 +36,6 @@ class Servo:
         self.servo.value = duty
 
         self.log.debug(f"Changed angle to {angle} in duty {duty}")
-        print(f"Changed angle to {angle} in duty {duty}")
 
         self.servoAngle = angle
 
