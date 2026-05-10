@@ -1,0 +1,4 @@
+Timestamp,Error,Integral,Derivative,Out
+0,100,0,0,60
+1,80,5,1,40
+2,50,12,3,38
