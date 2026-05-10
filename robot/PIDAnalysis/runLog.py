@@ -30,11 +30,11 @@ def moveToBall(sp):
         # motors.stop()
         return None
 
-    while (abs(pv[0] - sp[0]) > data.GO_TO_BALL_ERROR) or (abs(pv[1] - sp[1]) > data.GO_TO_BALL_ERROR):
+    while (abs(pv[1] - sp[1]) > 1):
 
         speedY = pidY.pidCalc(pv[1] - sp[1])
 
-        print(f"Vy: {speedY}")
+        print(f"Vy: {speedY}, Pv: {pv}")
 
         # motors.setSpeed(0, speedY, 0)
 
@@ -48,4 +48,4 @@ def moveToBall(sp):
     return None
 
 if __name__ == "__main__":
-    moveToBall(data.ROBOT_BALL_DISTANCE)
+    moveToBall((0, 10))

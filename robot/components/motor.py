@@ -28,7 +28,7 @@ class motor7046:
 
     @speed.setter
     def speed(self, speed: float):
-        self._speed = speed
+        self._speed = map(speed, -100, 100, -1, 1)
         pwm_value = abs(self._speed)
 
         if self._speed > 0:
@@ -44,7 +44,7 @@ class motor7046:
         self.log.debug(f"Motor speed is now: {speed}")
 
     def stophard(self):
-        self._speed = -1
+        self._speed = 0
         self.mot1.value = 1
         self.mot2.value = 1
         self.log.debug(f"Stopped hard!")

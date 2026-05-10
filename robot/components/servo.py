@@ -32,7 +32,7 @@ class Servo:
             self.log.error("Error: angle must be between 0 and 180")
             raise Exception("Error: angle must be between 0 and 180")
 
-        duty = Servo.calculateDuty(angle)
+        duty = map(Servo.calculateDuty(angle), 0, 100, 0, 1)
         self.servo.value = duty
 
         self.log.debug(f"Changed angle to {angle} in duty {duty}")
