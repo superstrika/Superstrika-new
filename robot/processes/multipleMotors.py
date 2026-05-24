@@ -6,10 +6,10 @@ class multipleMotors:
 
         self.parent = parent
 
-        motor1 = motor.motor7046(pins[0], pins[1], switch=False)
-        motor2 = motor.motor7046(pins[2], pins[3], switch=False)
-        motor3 = motor.motor7046(pins[4], pins[5], switch=True)
-        motor4 = motor.motor7046(pins[6], pins[7], switch=True)
+        motor1 = motor.motor7046(pins[0], pins[1], switch=True)
+        motor2 = motor.motor7046(pins[2], pins[3], switch=True)
+        motor3 = motor.motor7046(pins[4], pins[5], switch=False)
+        motor4 = motor.motor7046(pins[6], pins[7], switch=False)
 
         self.motors: list[motor.motor7046] = [motor1, motor2, motor3, motor4]
 

@@ -13,7 +13,7 @@ class motor7046:
         self.mot1 = gpiozero.PWMLED(pin1, frequency=800)
         self.mot2 = gpiozero.PWMLED(pin2, frequency=800)
 
-        self._speed = 0
+        self._speed = 0.0
         self.mot1.value = 0  # start PWM with 0% duty cycle
         self.mot2.value = 0
 
@@ -28,7 +28,8 @@ class motor7046:
 
     @speed.setter
     def speed(self, speed: float):
-        self._speed = map(speed, -100, 100, -1, 1)
+        # self._speed = map(speed, -100, 100, -1, 1)
+        self._speed = speed / 100
         pwm_value = abs(self._speed)
 
         if self._speed > 0:
