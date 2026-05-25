@@ -44,7 +44,7 @@ class GyroMovement:
             sleep(0.3)
             error: float = setPoint - self.gyro.get_z_angle()
 
-    def move_forward_cm(self, distance_cm: float, speed=30, pidValues: tuple=(1.5, 0.01, 0.1, 100)):
+    def move_forward_cm(self, distance_cm: float, speed=(30,30), pidValues: tuple=(1.5, 0.01, 0.1, 100)):
         """
         Moves the robot forward for a specified distance with gyro heading correction.
         Note: This implementation uses time as a proxy for distance.
@@ -62,7 +62,12 @@ class GyroMovement:
                 current_heading = self.gyro.get_z_angle()
                 correction = pid.pidCalc(target_heading - current_heading)
 
-                self.motors.setSpeed(0, speed, correction)
+                self.motors.setSpeed(*speed, correction)
                 time.sleep(0.01)
         finally:
             self.motors.stop()
+
+if __name__ == "__main__":
+    s = GyroMovement()
+
+    s.move_forward_cm(25, pidValues=(0.4, 0.01, 0.1, 100))

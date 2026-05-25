@@ -10,7 +10,7 @@ def go():
 
     sp = data.ROBOT_BALL_DISTANCE
 
-    pidY = PidCalc(1.5, 0, 0, 100, verbose=False)
+    pidY = PidCalc(0.8, 0, 0, 100, verbose=False)
     pidX = PidCalc(0.01, 0, 0.1, 100, verbose=False)
 
     pv = camera.getBallLocation()  # distance
