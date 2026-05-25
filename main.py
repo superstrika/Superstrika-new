@@ -1,6 +1,7 @@
 # import robot.consts.data
 # from robot import hunter, keeper
-import robot.calibration.motor_identification as mot
+# import robot.calibration.motor_identification as mot
+import robot.tests.uart as test
 
 # if __name__ == "__main__":
 #     if robot.consts.data.SELF_IS_HUNTER:
@@ -10,4 +11,6 @@ import robot.calibration.motor_identification as mot
 #         rob = keeper.Keeper()
 #         rob.keep()
 
-mot.main()
+ser = test.Camera7046()
+while True:
+    print(ser.getBallLocation())

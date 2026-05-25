@@ -1,7 +1,7 @@
-from pidCalc import PidCalc
+from robot.processes.pidCalc import PidCalc as PidCalc
 from robot.components.gyro import MPU6050
 from robot.components.motor import motor7046
-from multipleMotors import multipleMotors
+from robot.processes.multipleMotors import multipleMotors
 from smbus2 import SMBus as I2C  # For RPI compatibility
 from time import sleep
 import robot.consts.data as data

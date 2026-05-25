@@ -1,17 +1,17 @@
 import sys
-import components.servo as servo
+import robot.components.servo as servo
 from time import sleep
 import gpiozero
-import processes.EdgeLineDetection as EdgeLineDetection
-import components.gyro as gyro
-import components.dribbler as dribbler
-import consts.data as data
-from components.vcnl import VCNL4040 as VCNL
+import robot.processes.EdgeLineDetection as EdgeLineDetection
+import robot.components.gyro as gyro
+import robot.components.dribbler as dribbler
+import robot.consts.data as data
+# from robot.components.vcnl import VCNL4040 as VCNL
 import logging
-import components.camera as camera
-from processes.pidCalc import PidCalc
-import processes.gyroMovement as gyroMovement
-import processes.multipleMotors as multipleMotors
+import robot.components.camera as camera
+from robot.processes.pidCalc import PidCalc
+import robot.processes.gyroMovement as gyroMovement
+import robot.processes.multipleMotors as multipleMotors
 import threading
 
 try:
@@ -43,10 +43,10 @@ class Hunt:
         self.camera = camera.Camera7046(data.SERIAL_FREQUENCY)
 
         # vcnl
-        self.vcnl = VCNL()
-        self.vcnl.led_current = self.vcnl.LED_100MA
-        self.vcnl.proximity_high_definition = True
-        self.vcnl.proximity_integration_time = self.vcnl.PS_8T
+        # self.vcnl = VCNL()
+        # self.vcnl.led_current = self.vcnl.LED_100MA
+        # self.vcnl.proximity_high_definition = True
+        # self.vcnl.proximity_integration_time = self.vcnl.PS_8T
 
         # processes
         self.lineDetection = EdgeLineDetection.EdgeLineDetection(pins=data.TCRT_PINS, motors=self.motors, parent=self)
@@ -280,4 +280,4 @@ class Hunt:
 
 if __name__ == "__main__":
     r = Hunt()
-    r.hunt()
+    r.goToBall()
