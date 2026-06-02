@@ -13,7 +13,7 @@ class motor7046:
         self.mot1 = gpiozero.PWMLED(pin1, frequency=800)
         self.mot2 = gpiozero.PWMLED(pin2, frequency=800)
 
-        self._speed = 0
+        self._speed = 0.0
         self.mot1.value = 0  # start PWM with 0% duty cycle
         self.mot2.value = 0
 
@@ -28,7 +28,9 @@ class motor7046:
 
     @speed.setter
     def speed(self, speed: float):
-        self._speed = speed
+        # self._speed = map(speed, -100, 100, -1, 1)
+        self._speed = speed / 100
+        print(f"{self._speed}")
         pwm_value = abs(self._speed)
 
         if self._speed > 0:
@@ -44,19 +46,30 @@ class motor7046:
         self.log.debug(f"Motor speed is now: {speed}")
 
     def stophard(self):
-        self._speed = -1
+        self._speed = 0
         self.mot1.value = 1
         self.mot2.value = 1
         self.log.debug(f"Stopped hard!")
 
     def stop(self):
         self._speed = 0
-        self.mot1.value = 0
-        self.mot2.value = 0
-        self.log.debug(f"Motor speed is now: 0")
+        try:
+            # Check if pins are open before using them
+            if not getattr(self.mot1, 'closed', True):
+                self.mot1.value = 0
+            if not getattr(self.mot2, 'closed', True):
+                self.mot2.value = 0
+            self.log.debug(f"Motor speed is now: 0")
+        except gpiozero.exc.GPIODeviceClosed:
+            pass  # Already cleaned up by Python
 
     def __del__(self):
         self._speed = 0
-        self.mot1.value = 0
-        self.mot2.value = 0
+        try:
+            if not getattr(self.mot1, 'closed', True):
+                self.mot1.value = 0
+            if not getattr(self.mot2, 'closed', True):
+                self.mot2.value = 0
+        except gpiozero.exc.GPIODeviceClosed:
+            pass
 

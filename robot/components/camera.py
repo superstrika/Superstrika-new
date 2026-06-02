@@ -23,7 +23,7 @@ class Camera7046:
         ballLocation: list[tuple[float, float]] = []
         try:
             self.ser.reset_input_buffer()
-            for _ in range(5):
+            for _ in range(2):
                 response = self.readMessage()
 
                 response: list[float] = response.split('#')

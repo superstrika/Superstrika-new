@@ -24,8 +24,8 @@ class PidCalc:
         )
 
     def pidCalc(self, error: float) -> float:
-        if self.verbose:
-            os.system('cls' if os.name == 'nt' else 'clear')
+        # if self.verbose:
+        #     os.system('cls' if os.name == 'nt' else 'clear')
         self.log.info(f"-------------------- PID --------------------------")
         dt = time.time() - self.lastTime
 

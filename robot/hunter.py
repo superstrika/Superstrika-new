@@ -1,17 +1,17 @@
 import sys
-import components.servo as servo
+import robot.components.servo as servo
 from time import sleep
 import gpiozero
-import processes.EdgeLineDetection as EdgeLineDetection
-import components.gyro as gyro
-import components.dribbler as dribbler
-import consts.data as data
-from components.vcnl import VCNL4040 as VCNL
+import robot.processes.EdgeLineDetection as EdgeLineDetection
+import robot.components.gyro as gyro
+import robot.components.dribbler as dribbler
+import robot.consts.data as data
+# from robot.components.vcnl import VCNL4040 as VCNL
 import logging
-import components.camera as camera
-from processes.pidCalc import PidCalc
-import processes.gyroMovement as gyroMovement
-import processes.multipleMotors as multipleMotors
+import robot.components.camera as camera
+from robot.processes.pidCalc import PidCalc
+import robot.processes.gyroMovement as gyroMovement
+import robot.processes.multipleMotors as multipleMotors
 import threading
 
 try:
@@ -43,13 +43,13 @@ class Hunt:
         self.camera = camera.Camera7046(data.SERIAL_FREQUENCY)
 
         # vcnl
-        self.vcnl = VCNL()
-        self.vcnl.led_current = self.vcnl.LED_100MA
-        self.vcnl.proximity_high_definition = True
-        self.vcnl.proximity_integration_time = self.vcnl.PS_8T
+        # self.vcnl = VCNL()
+        # self.vcnl.led_current = self.vcnl.LED_100MA
+        # self.vcnl.proximity_high_definition = True
+        # self.vcnl.proximity_integration_time = self.vcnl.PS_8T
 
         # processes
-        self.lineDetection = EdgeLineDetection.EdgeLineDetection(pins=data.TCRT_PINS, motors=self.motors, parent=self)
+        # self.lineDetection = EdgeLineDetection.EdgeLineDetection(pins=data.TCRT_PINS, motors=self.motors, parent=self)
         self.gyroMovement = gyroMovement.GyroMovement(self.i2c, self.gyro, self.motors)
 
         # main switch
@@ -123,8 +123,8 @@ class Hunt:
 
         angle = self.gyro.get_z_angle()
         while abs(angle) < 360:
-            if not self.running_gate.is_set():  # ------------------------------------------------------------------- Check if end button was pressed.
-                return None
+            # if not self.running_gate.is_set():  # ------------------------------------------------------------------- Check if end button was pressed.
+            #     return None
 
                 # input(f"Stopped... {self.serial.getBallLocation()}")
             if obj == data.Object.Ball:
@@ -161,8 +161,8 @@ class Hunt:
             return None
 
         while (abs(pv[0] - sp[0]) > data.GO_TO_BALL_ERROR) or (abs(pv[1] - sp[1]) > data.GO_TO_BALL_ERROR):
-            if not self.running_gate.is_set():  # ------------------------------------------------------------------- Check if end button was pressed.
-                return None
+            # if not self.running_gate.is_set():  # ------------------------------------------------------------------- Check if end button was pressed.
+            #     return None
 
             speedX = pidX.pidCalc(pv[0] - sp[0])
             speedY = max(pidY.pidCalc(pv[1] - sp[1]), 25)
@@ -181,7 +181,8 @@ class Hunt:
         return None
 
     def getBallStatus(self) -> data.BallStatus:
-        vcnl_prox = self.vcnl.proximity
+        # vcnl_prox = self.vcnl.proximity
+        vcnl_prox = 0
         cam_dist = self.camera.getBallLocation()
         self.log.debug(f"{cam_dist=}, {vcnl_prox=}")
 
@@ -222,7 +223,7 @@ class Hunt:
 
     def hunt(self):
         while True:
-            self.check_pause()
+            # self.check_pause()
             status = self.getBallStatus()
 
             if status == data.BallStatus.CAM_DETECTED:
@@ -237,17 +238,18 @@ class Hunt:
                 if not self.spinSearch():
                     self.servo.angle = data.MIN_ANGLE
                     if not self.spinSearch():
-                        self.gyroMovement.move_forward_cm(30, 30)
+                        # self.gyroMovement.move_forward_cm(30, (0, 30), (0.4, 0.01, 0.1, 100))
+                        pass
 
             if status == data.BallStatus.VCNL_CLOSE:
                 self.log.info("Ball is Close!")
                 self.dribbler.start()
-                self.gyroMovement.move_forward_cm(15, 30)
+                self.gyroMovement.move_forward_cm(15, (0, 30), (0.4, 0.01, 0.1, 100))
 
             if status == data.BallStatus.CAM_DETECTED_AND_VCNL_CLOSE:
                 self.log.info("Ball is Close but not that much!")
                 self.dribbler.start()
-                self.gyroMovement.move_forward_cm(30, 30)
+                self.gyroMovement.move_forward_cm(30, (0, 30), (0.4, 0.01, 0.1, 100))
 
             if status == data.BallStatus.VCNL_IN_KICKER:
                 self.log.info("Ball in Kicker Position!")
@@ -279,5 +281,5 @@ class Hunt:
         self.motors.stop()
 
 if __name__ == "__main__":
-    r = Hunt()
+    r = Hunt(debug=True)
     r.hunt()

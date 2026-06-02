@@ -1,4 +1,4 @@
-import motor
+import robot.components.motor as motor
 
 class Dribbler:
     def __init__(self, pins: tuple[int, int]):

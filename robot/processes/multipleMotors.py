@@ -6,10 +6,10 @@ class multipleMotors:
 
         self.parent = parent
 
-        motor1 = motor.motor7046(pins[0], pins[1], switch=False)
+        motor1 = motor.motor7046(pins[0], pins[1], switch=True)
         motor2 = motor.motor7046(pins[2], pins[3], switch=False)
-        motor3 = motor.motor7046(pins[4], pins[5], switch=True)
-        motor4 = motor.motor7046(pins[6], pins[7], switch=True)
+        motor3 = motor.motor7046(pins[4], pins[5], switch=False)
+        motor4 = motor.motor7046(pins[6], pins[7], switch=False)
 
         self.motors: list[motor.motor7046] = [motor1, motor2, motor3, motor4]
 
@@ -50,8 +50,10 @@ class multipleMotors:
 
         speeds = [wheel1_speed, wheel2_speed, wheel3_speed, wheel4_speed]
 
+        print(f"{speeds=}")
+
         for i in range(len(self.motors)):
-            self.motors[i].speed = speeds[i] if speeds[i] > 1 else 0
+            self.motors[i].speed = max(-100, min(100, speeds[i])) if abs(speeds[i]) > 0.01 else 0
 
     def setMotorOn(self, motorIndex: int, speed: int = 100):
         if motorIndex > 3 or motorIndex < 0:
