@@ -282,4 +282,4 @@ class Hunt:
 
 if __name__ == "__main__":
     r = Hunt(debug=True)
-    r.hunt()
+    r.goToBall()

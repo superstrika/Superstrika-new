@@ -14,6 +14,11 @@ import robot.processes.gyroMovement as gyroMovement
 import robot.processes.multipleMotors as multipleMotors
 import threading
 
+try:
+    from machine import I2C
+except ImportError:
+    from smbus2 import SMBus as I2C  # For RPI compatibility
+
 class Ride:
     def __init__(self, debug=False):
         # race conditions of motors
@@ -71,15 +76,73 @@ class Ride:
 
     def joyRide(self):
 
-        self.gyroMovement.move_forward_cm(30, (0, 40))
+        self.gyroMovement.move_forward_cm(80, (0, 30))
 
         input()
 
-        self.gyroMovement.move_forward_cm(30, (0, -40))
+        self.gyroMovement.move_forward_cm(20, (0, -30))
 
         input()
 
-        self.gyroMovement.move_forward_cm(30, (30, 30))
+        self.gyroMovement.move_forward_cm(10, (30, 30))
 
         input()
+
+        self.gyroMovement.move_forward_cm(20, (-30, 0))
+
+        input()
+
+        self.gyroMovement.move_forward_cm(20, (0, -30))
+
+        input()
+
+        self.goToBall()
+
+    def goToBall(self, delay=0.005, obj: data.Object = data.Object.Ball) -> None:
+        self.log.info("Going to Ball...")
+        sp = data.ROBOT_BALL_DISTANCE if obj == data.Object.Ball else data.ROBOT_GOAL_DISTANCE
+
+        pidY = PidCalc(0.6, 0, 0, 100, verbose=False)
+        pidX = PidCalc(0.01, 0, 0.1, 100, verbose=False)
+
+        pv = self.getObjectLocation(obj)  # distance
+        self.log.debug(f"{pv=}")
+
+        if pv[0] is None or pv[1] is None:
+            print("Ball Lost")
+            self.motors.stop()
+            return None
+
+        while (abs(pv[0] - sp[0]) > data.GO_TO_BALL_ERROR) or (abs(pv[1] - sp[1]) > data.GO_TO_BALL_ERROR):
+            # if not self.running_gate.is_set():  # ------------------------------------------------------------------- Check if end button was pressed.
+            #     return None
+
+            speedX = pidX.pidCalc(pv[0] - sp[0])
+            speedY = max(pidY.pidCalc(pv[1] - sp[1]), 25)
+
+            self.log.debug(f"Vx: {speedX}, Vy: {speedY}")
+
+            self.motors.setSpeed(speedX, speedY, 0)
+
+            pv = self.getObjectLocation(obj)
+
+            if pv[0] is None or pv[1] is None:
+                self.motors.stop()
+                return None
+
+        self.log.info(f"Got to Object {obj.name} successfully... e: {pv[0] - sp[0]}, {pv[1] - sp[1]}")
+        return None
+    
+    def getObjectLocation(self, obj: data.Object) -> tuple[float | None, float | None] | tuple[None, None]:
+        if obj == data.Object.Ball:
+            return self.camera.getBallLocation()
+        elif obj == data.Object.YellowGoal:
+            return self.camera.getYellowGoalLocation()
+        elif obj == data.Object.BlueGoal:
+            return self.camera.getBlueGoalLocation()
+        return None, None
+
+if __name__ == "__main__":
+    j = Ride()
+    j.joyRide()
 

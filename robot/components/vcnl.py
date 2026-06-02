@@ -157,3 +157,37 @@ class VCNL4040:
     @property
     def proximity_high_interrupt(self):
         return self._get_and_clear_interrupt(self.PS_IF_CLOSE)
+
+if __name__ == "__main__":
+    sensor = VCNL4040()
+    sensor.led_current = VCNL4040.LED_100MA
+    sensor.proximity_high_definition = True
+    sensor.proximity_integration_time = VCNL4040.PS_8T
+    print("VCNL4040 Ready (smbus2)")
+
+    import robot.consts.data as data
+
+    def getBallStatus(vcnl) -> data.BallStatus:
+        vcnl_prox = vcnl.proximity
+
+        cam_found = False
+        if vcnl_prox < data.VCNL_PROX_NOT_DETECTED and not cam_found:
+            return data.BallStatus.NOT_FOUND
+        
+        if cam_found and vcnl_prox < data.VCNL_PROX_NOT_DETECTED:
+            return data.BallStatus.CAM_DETECTED
+        
+        if not cam_found and data.VCNL_PROX_IN_KICKER > vcnl_prox > data.VCNL_PROX_NOT_DETECTED:
+            return data.BallStatus.VCNL_CLOSE
+        
+        if not cam_found and data.VCNL_PROX_IN_KICKER < vcnl_prox:
+            return data.BallStatus.VCNL_IN_KICKER
+        
+        return data.BallStatus.CAM_DETECTED_AND_VCNL_CLOSE
+    
+    try:
+        while True:
+            print(f"Proximity: {sensor.proximity:5} | Status: {getBallStatus(sensor)}")
+            time.sleep(0.2)
+    except KeyboardInterrupt:
+        print("\nExiting.")

@@ -45,9 +45,9 @@ GO_TO_BALL_ERROR: float = 1.5
 ROBOT_BALL_DISTANCE: tuple[float, float] = (1, 1)
 ROBOT_GOAL_DISTANCE: tuple[float, float] = (25, 25)
 
-VCNL_PROX_CLOSE = 20
+VCNL_PROX_CLOSE = 100
 VCNL_PROX_IN_KICKER = 1000
-VCNL_PROX_NOT_DETECTED = 15
+VCNL_PROX_NOT_DETECTED = 97
 
 """----------------------------------------------
               Game configuration
