@@ -32,7 +32,8 @@ class Servo:
             self.log.error("Error: angle must be between 0 and 180")
             raise Exception("Error: angle must be between 0 and 180")
 
-        duty = map(Servo.calculateDuty(angle), 0, 100, 0, 1)
+        duty = Servo.calculateDuty(angle) / 100
+
         self.servo.value = duty
 
         self.log.debug(f"Changed angle to {angle} in duty {duty}")
@@ -41,3 +42,12 @@ class Servo:
 
         sleep(delay)
         self.servo.value = 0
+
+if __name__ == "__main__":
+    s = Servo(6)
+    while True:
+        angle = input("Enter angle (0-180) or 'q' to quit: ")
+        if angle == 'q': break
+        
+        angle = float(angle)
+        s.angle = angle

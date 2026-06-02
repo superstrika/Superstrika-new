@@ -70,4 +70,4 @@ class GyroMovement:
 if __name__ == "__main__":
     s = GyroMovement()
 
-    s.move_forward_cm(25, pidValues=(0.4, 0.01, 0.1, 100))
+    s.move_forward_cm(25, pidValues=(0.4, 0.01, 0.1, 100), speed=(25, 50))
