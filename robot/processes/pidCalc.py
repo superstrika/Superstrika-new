@@ -3,13 +3,13 @@ import os
 import logging
 
 class PidCalc:
-    def __init__(self, kp: float, ki: float, kd: float, maxSpeed: float, verbose: bool = True) -> None:
+    def __init__(self, kp: float, ki: float, kd: float, maxSpeed: float, verbose: bool = True, startError: float = 0) -> None:
 
         self.kp: float = kp
         self.ki: float = ki
         self.kd: float = kd
 
-        self.prevError: float = 0
+        self.prevError: float = startError
         self.integral: float = 0
 
         self.lastTime: float = time.time()

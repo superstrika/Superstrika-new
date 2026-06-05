@@ -77,6 +77,12 @@ class Camera7046:
             avgX /= len(goalLocation)
             avgY /= len(goalLocation)
 
+            if avgX == 0:
+                avgX = None
+
+            if avgY == 0:
+                avgY = None
+
             return avgX, avgY
 
         except Exception as e:
@@ -103,6 +109,12 @@ class Camera7046:
             avgX /= len(goalLocation)
             avgY /= len(goalLocation)
 
+            if avgX == 0:
+                avgX = None
+
+            if avgY == 0:
+                avgY = None
+
             return avgX, avgY
 
         except Exception as e:
@@ -118,4 +130,4 @@ class Camera7046:
 if __name__ == "__main__":
     ser = Camera7046()
     while True:
-        print(ser.getBallLocation())
+        print(ser.getYellowGoalLocation())

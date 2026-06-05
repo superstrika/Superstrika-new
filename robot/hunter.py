@@ -82,7 +82,7 @@ class Hunt:
     def check_pause(self, timeout=None):
         return self.running_gate.wait(timeout=timeout)
 
-    def camSearch(self, delay=0.3) -> tuple[float | None, float | None]:
+    def camSearch(self, obj: data.Object = data.Object.Ball) -> bool:
         """
         Changes camera angle until ball is found.
         :param delay: the delay each change of angle.
@@ -91,21 +91,18 @@ class Hunt:
 
         self.log.info("Initializing Camera Search...")
 
-        self.servo.angle = data.MAX_ANGLE
+        pv = self.getObjectLocation(obj)
 
-        for angle in range(data.MAX_ANGLE, data.MIN_ANGLE, -10):
+        for angle in range(data.MAX_ANGLE, data.MIN_ANGLE, -35):
+            self.servo.angle = angle
+            pv = self.getObjectLocation(obj)
+            if pv[0] is not None and pv[1] is not None:
+                return True
+            time.sleep(0.2)
+        
+        return False
 
-            self.servo.setAngle(angle, delay * ((data.MAX_ANGLE - angle) / data.MIN_ANGLE))
-
-            ballX, ballY = self.camera.getBallLocation()
-            if ballX != 0 or ballY != 0:
-                self.log.info(f"Ball Found: {ballX}, {ballY}")
-                return ballX, ballY
-
-        self.log.info("Camera Search failed...")
-        return None, None
-
-    def spinSearch(self, delay=0.25, right: bool = True, obj: data.Object = data.Object.Ball) -> bool | None:
+    def spinSearch(self, delay=0.6, right: bool = True, obj: data.Object = data.Object.Ball) -> bool | None:
         """
         Spins the robot 360 degrees or until ball is found.
         :param delay: the delay between the start of spinning to first angle check.
@@ -113,7 +110,6 @@ class Hunt:
         :param obj: which object to search: ball, yellow goal or blue goal
         :return: [0] - X coordinate of the returned object. [1] - Y coordinate of the returned object. None if not found.
         """
-        speed = data.ROTATION_SPEED if right else -data.ROTATION_SPEED
 
         self.log.info("Initializing Spin Search...")
 
@@ -124,21 +120,11 @@ class Hunt:
             if not self.running_gate.is_set():  # ------------------------------------------------------------------- Check if end button was pressed.
                 return None
 
-                # input(f"Stopped... {self.serial.getBallLocation()}")
-            if obj == data.Object.Ball:
-                end = self.getBallStatus() != data.BallStatus.NOT_FOUND
-            else:
-                end = self.getGoalStatus(obj) != data.GoalStatus.NOT_FOUND
-
-            if end:
+            if self.camSearch(obj):
                 self.log.info(f"Object {obj.name} Found")
                 return True
 
-            self.motors.setSpeed(0, 0, speed)
-            sleep(delay)
-
-            self.motors.stop()
-            sleep(delay)
+            self.gyroMovement.spinToAngle(angle + 45)
             angle = self.gyro.get_z_angle()
 
         self.log.info("Spin search failed...")
@@ -273,6 +259,7 @@ class Hunt:
 
                     if goalStatus == data.GoalStatus.NOT_FOUND:
                         self.log.info("Searching for goal!")
+                        self.servo.angle = data.MAX_ANGLE
                         self.spinSearch(obj=obj)
 
                     if goalStatus == data.GoalStatus.FAR:
