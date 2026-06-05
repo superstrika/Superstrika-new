@@ -50,7 +50,7 @@ class multipleMotors:
 
         speeds = [wheel1_speed, wheel2_speed, wheel3_speed, wheel4_speed]
 
-        print(f"{speeds=}")
+        self.log.debug(f"{speeds=}")
 
         for i in range(len(self.motors)):
             self.motors[i].speed = max(-100, min(100, speeds[i])) if abs(speeds[i]) > 0.01 else 0

@@ -19,9 +19,10 @@ CHIP_ID: int = 0
 """----------------------------------------------
               Camera configuration
 ----------------------------------------------"""
-MIN_ANGLE: int = 75
+MIN_ANGLE: int = 40
+MID_ANGLE: int = 100
 MAX_ANGLE: int = 180
-GOOD_ANGLE: int = 150
+GOOD_ANGLE: int = 160
 
 """----------------------------------------------
               Serial configuration
@@ -37,17 +38,16 @@ LOG_FORMAT: str = "[%(levelname)s] %(cls)s: %(funcName)s: %(message)s"
 """----------------------------------------------
               Hunt Configuration
 ----------------------------------------------"""
-ROTATION_SPEED: int = 20
+ROTATION_SPEED: int = 25
 
 SPIN_SEARCH_ERROR: float = 3
 SPIN_TO_BALL_ERROR: float = 1.5
-GO_TO_BALL_ERROR: float = 1.5
-ROBOT_BALL_DISTANCE: tuple[float, float] = (1, 1)
+GO_TO_BALL_ERROR: float = 1
+ROBOT_BALL_DISTANCE: tuple[float, float] = (0, 0)
 ROBOT_GOAL_DISTANCE: tuple[float, float] = (25, 25)
 
-VCNL_PROX_CLOSE = 100
-VCNL_PROX_IN_KICKER = 1000
-VCNL_PROX_NOT_DETECTED = 97
+VCNL_PROX_CLOSE = 105
+VCNL_PROX_IN_KICKER = 110
 
 """----------------------------------------------
               Game configuration

@@ -76,7 +76,7 @@ class Ride:
 
     def joyRide(self):
 
-        self.gyroMovement.move_forward_cm(80, (0, 30))
+        self.gyroMovement.move_forward_cm(20, (0, 30))
 
         input()
 

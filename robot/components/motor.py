@@ -30,7 +30,7 @@ class motor7046:
     def speed(self, speed: float):
         # self._speed = map(speed, -100, 100, -1, 1)
         self._speed = speed / 100
-        print(f"{self._speed}")
+        self.log.debug(f"{self._speed}")
         pwm_value = abs(self._speed)
 
         if self._speed > 0:
