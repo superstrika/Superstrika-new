@@ -37,8 +37,6 @@ class PidCalc:
         if dt > 0:
             derivative = (error - self.prevError) / dt
             out = self.kp * error + self.ki * self.integral + self.kd * derivative
-            self.prevError = error
-            self.lastTime = time.time()
 
             if self.verbose:
                 self.log.debug(f"Integral: {self.integral}")
@@ -48,6 +46,9 @@ class PidCalc:
                 self.log.debug(f"Last Error: {self.prevError}")
                 self.log.debug(f"Dt: {dt}")
                 self.log.debug("----------------------------------------------")
+
+            self.prevError = error
+            self.lastTime = time.time()
 
             return max(-self.maxSpeed, min(out, self.maxSpeed))
         return 0

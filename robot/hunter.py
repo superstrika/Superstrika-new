@@ -2,6 +2,7 @@ import sys
 import robot.components.servo as servo
 from time import sleep
 import time
+import math
 import gpiozero
 import robot.processes.EdgeLineDetection as EdgeLineDetection
 import robot.components.gyro as gyro
@@ -120,9 +121,15 @@ class Hunt:
             if not self.running_gate.is_set():  # ------------------------------------------------------------------- Check if end button was pressed.
                 return None
 
-            if self.camSearch(obj):
+            if obj == data.Object.Ball and self.camSearch(obj):
                 self.log.info(f"Object {obj.name} Found")
                 return True
+            elif (obj == data.Object.YellowGoal or obj == data.Object.BlueGoal) and (self.getGoalStatus(obj) == data.GoalStatus.FAR or self.getGoalStatus(obj) == data.GoalStatus.CLOSE):
+                self.log.info(f"Object {obj.name} Found")
+                return True
+
+            if (obj != data.Object.Ball):
+                time.sleep(0.3)
 
             self.gyroMovement.spinToAngle(angle + 45)
             angle = self.gyro.get_z_angle()
@@ -130,42 +137,71 @@ class Hunt:
         self.log.info("Spin search failed...")
         return False
 
-    def goToBall(self, delay=0.005, obj: data.Object = data.Object.Ball) -> None:
-        self.log.info("Going to Ball...")
-        sp = data.ROBOT_BALL_DISTANCE if obj == data.Object.Ball else data.ROBOT_GOAL_DISTANCE
+    # def goToBall(self, delay=0.005, obj: data.Object = data.Object.Ball) -> None:
+    #     self.log.info("Going to Ball...")
+    #     sp = data.ROBOT_BALL_DISTANCE if obj == data.Object.Ball else data.ROBOT_GOAL_DISTANCE
 
-        pidY = PidCalc(0.6, 0, 0, 100, verbose=False)
-        pidX = PidCalc(0.05, 0, 0.2, 100, verbose=False)
+    #     pv = self.getObjectLocation(obj)  # distance
 
-        pv = self.getObjectLocation(obj)  # distance
-        self.log.debug(f"{pv=}")
+    #     pidY = PidCalc(0, 0, 0, 100, verbose=False, startError=pv[1])
+    #     pidX = PidCalc(0.15, 0.001, 0.15, 100, verbose=True, startError=pv[0])
 
-        if pv[0] is None or pv[1] is None:
+    #     time.sleep(1)
+
+    #     if pv[0] is None or pv[1] is None:
+    #         self.motors.stop()
+    #         return None
+
+    #     while (abs(pv[0] - sp[0]) > data.GO_TO_BALL_ERROR) or (abs(pv[1] - sp[1]) > data.GO_TO_BALL_ERROR):
+    #         if not self.running_gate.is_set():  # ------------------------------------------------------------------- Check if end button was pressed.
+    #             return None
+            
+    #         self.log.debug(f"{pv=}")
+
+    #         speedX = pidX.pidCalc(pv[0] - sp[0])
+    #         speedY = max(pidY.pidCalc(pv[1] - sp[1]), 25)
+
+    #         self.log.debug(f"Vx: {speedX}, Vy: {speedY}")
+
+    #         self.motors.setSpeed(speedX, speedY, 0)
+
+    #         sleep(delay)
+
+    #         pv = self.getObjectLocation(obj)
+
+    #         if pv[0] is None or pv[1] is None:
+    #             self.motors.stop()
+    #             self.tryBallDownSearch(obj)
+    #             return None
+
+    #     self.log.info(f"Got to Object {obj.name} successfully... e: {pv[0] - sp[0]}, {pv[1] - sp[1]}")
+    #     return None
+
+    def goToBall(self, obj: data.Object = data.Object.Ball):
+        pid = PidCalc(0.3, 0.3, 0.1, 100)
+        pidDist = PidCalc(0.5, 0.3, 0.1, 100)
+        xy = (0, 0)
+        try:
+            while self.vcnl.proximity < 110 and xy[0] is not None and xy[1] is not None:
+                xy: list = self.getObjectLocation(obj)
+                angle = math.degrees(math.atan(xy[0] / xy[1]))
+
+
+                correction = pid.pidCalc(-angle)
+                speedY = pidDist.pidCalc(math.sqrt(xy[0] ** 2 + xy[1] ** 2))
+
+                self.motors.setSpeed(0, speedY, correction)
+                time.sleep(0.01)
+        except Exception as e:
+            print(e)
+        finally:
+            self.motors.stophard()
+
+        if xy[0] is None or xy[1] is None:
             self.motors.stop()
+            self.tryBallDownSearch(obj)
             return None
 
-        while (abs(pv[0] - sp[0]) > data.GO_TO_BALL_ERROR) or (abs(pv[1] - sp[1]) > data.GO_TO_BALL_ERROR):
-            if not self.running_gate.is_set():  # ------------------------------------------------------------------- Check if end button was pressed.
-                return None
-
-            speedX = pidX.pidCalc(pv[0] - sp[0])
-            speedY = max(pidY.pidCalc(pv[1] - sp[1]), 25)
-
-            self.log.debug(f"Vx: {speedX}, Vy: {speedY}")
-
-            self.motors.setSpeed(speedX, speedY, 0)
-
-            sleep(delay)
-
-            pv = self.getObjectLocation(obj)
-
-            if pv[0] is None or pv[1] is None:
-                self.motors.stop()
-                self.tryBallDownSearch(obj)
-                return None
-
-        self.log.info(f"Got to Object {obj.name} successfully... e: {pv[0] - sp[0]}, {pv[1] - sp[1]}")
-        return None
 
     def tryBallDownSearch(self, obj: data.Object = data.Object.Ball) -> None:
         pv = self.getObjectLocation(obj)
@@ -219,6 +255,16 @@ class Hunt:
         elif obj == data.Object.BlueGoal:
             return self.camera.getBlueGoalLocation()
         return None, None
+    
+    def goToGoal(self, obj: data.Object):
+        xy: list = self.getObjectLocation(obj)
+        angle = math.degrees(math.atan(xy[0] / xy[1]))
+
+        self.log.debug(f"Found Ball at angle: {angle}. x: {xy[0]}, y: {xy[1]}")
+
+        self.gyroMovement.spinToAngle(-angle)
+
+        self.gyroMovement.move_until(speed=(0, 30), until=lambda: self.vcnl.proximity > 100)
 
     def hunt(self):
         while True:
@@ -235,14 +281,8 @@ class Hunt:
                 self.servo.angle = data.GOOD_ANGLE
                 self.dribbler.stop()
                 if not self.spinSearch():
-                    self.log.debug(f"First Spin Search failed!: {time.time()}")
-                    self.servo.angle = data.MID_ANGLE
-                    if not self.spinSearch():
-                        self.log.debug(f"Second Spin Search failed!: {time.time()}")
-                        self.servo.angle = data.MIN_ANGLE
-                        if not self.spinSearch():
-                            self.log.debug(f"Third spin search failed!: {time.time()}")
-                            self.gyroMovement.move_forward_cm(15, (0, 30), (0.4, 0.01, 0.1, 100))
+                    self.log.debug("Spin Search failed!")
+                    self.gyroMovement.move_forward_cm(15, (0, 30), (0.4, 0.01, 0.1, 100))
 
             if status == data.BallStatus.VCNL_CLOSE:
                 self.log.info("Ball is Close!")
@@ -264,7 +304,7 @@ class Hunt:
 
                     if goalStatus == data.GoalStatus.FAR:
                         self.log.info("Going to Goal!")
-                        self.goToBall(obj=obj)
+                        self.goToGoal(obj=obj)
 
                     if goalStatus == data.GoalStatus.CLOSE:
                         self.log.info("Kicked Ball!!!!!")

@@ -33,8 +33,6 @@ class GyroMovement:
         while abs(error) > errorOffset:
             speed: float = pid.pidCalc(error)
 
-            print(f"{speed=}, {error=}")
-
             # if 10 < speed < 25:
             #     speed += 15
 
@@ -70,7 +68,21 @@ class GyroMovement:
         finally:
             self.motors.stop()
 
+    def move_until(self, speed=(0, 30), pidValues: tuple=(1.5, 0.01, 0.1, 100), until = (1)):
+        target_heading = self.gyro.get_z_angle()
+        pid = PidCalc(*pidValues)
+
+        try:
+            while not until():
+                current_heading = self.gyro.get_z_angle()
+                correction = pid.pidCalc(target_heading - current_heading)
+
+                self.motors.setSpeed(*speed, correction)
+                time.sleep(0.01)
+        finally:
+            self.motors.stophard()
+
 if __name__ == "__main__":
     s = GyroMovement()
-    s.spinToAngle(45)
-    # s.move_forward_cm(25, pidValues=(0.4, 0.01, 0.1, 100), speed=(25, 50))
+    # s.spinToAngle(45)
+    # s.move_forward_cm(25, pidValues=(0.4, 0.01, 0.1, 100), speed=(40, 40))
