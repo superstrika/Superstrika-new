@@ -8,6 +8,7 @@ SERVO_PIN: int = 6
 RELAY_PIN: int = 7
 
 DRIBBLER_PIN: tuple[int, int] = (13, 16)
+KICKER_PIN: tuple[int, int] = (25, 26)
 START_BUTTON_PIN: int = 4
 
 """----------------------------------------------

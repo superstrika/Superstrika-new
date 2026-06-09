@@ -1,6 +1,7 @@
-import motor
+import robot.components.motor as motor
 import logging
 from time import sleep
+import time
 
 class Kicker:
     GEAR_TEETH = 1
@@ -14,19 +15,28 @@ class Kicker:
             {'cls': self.__class__.__name__}
         )
 
-    def loadPoint(self, speed=55):
+    def loadPoint(self, speed=33):
+        cur = time.time()
         self.motor.speed = speed
+        sleep(0.30)
+        self.motor.stophard()
+        print(f"{time.time() - cur}")
+        
 
     def load(self, p: int):
         for i in range(Kicker.GEAR_TEETH):
-            if i * p > 100:
-                self.motor.speed = 100
-            else:
-                self.motor.speed = i * p
+            self.motor.speed = i * p
             sleep(i + 0.3)
 
     def release(self):
         self.log.info("Releasing")
-        self.motor.speed = -100
-        sleep(0.5)
-        self.motor.speed = 0
+        self.motor.speed = 100
+        sleep(0.1)
+        self.motor.stophard()
+
+if __name__ == "__main__":
+    import robot.consts.data as data
+    k = Kicker(*data.KICKER_PIN)
+    k.loadPoint()
+    input()
+    k.release()

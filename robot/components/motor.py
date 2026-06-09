@@ -73,3 +73,9 @@ class motor7046:
         except gpiozero.exc.GPIODeviceClosed:
             pass
 
+if __name__ == "__main__":
+    mot = motor7046(25, 26)
+    mot.speed = 100
+    input()
+    mot.stop()
+
