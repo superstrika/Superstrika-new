@@ -15,10 +15,10 @@ class Kicker:
             {'cls': self.__class__.__name__}
         )
 
-    def loadPoint(self, speed=33):
+    def loadPoint(self, speed=65):
         cur = time.time()
         self.motor.speed = speed
-        sleep(0.30)
+        sleep(0.7)
         self.motor.stophard()
         print(f"{time.time() - cur}")
         

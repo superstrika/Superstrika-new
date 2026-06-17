@@ -39,10 +39,10 @@ class Camera7046:
             avgX /= len(ballLocation)
             avgY /= len(ballLocation)
 
-            if avgX == 0:
+            if avgX == 999:
                 avgX = None
 
-            if avgY == 0:
+            if avgY == 999:
                 avgY = None
 
             return avgX, avgY
@@ -77,10 +77,10 @@ class Camera7046:
             avgX /= len(goalLocation)
             avgY /= len(goalLocation)
 
-            if avgX == 0:
+            if avgX == 999:
                 avgX = None
 
-            if avgY == 0:
+            if avgY == 999:
                 avgY = None
 
             return avgX, avgY
@@ -109,10 +109,10 @@ class Camera7046:
             avgX /= len(goalLocation)
             avgY /= len(goalLocation)
 
-            if avgX == 0:
+            if avgX == 999:
                 avgX = None
 
-            if avgY == 0:
+            if avgY == 999:
                 avgY = None
 
             return avgX, avgY

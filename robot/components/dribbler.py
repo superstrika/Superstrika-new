@@ -11,7 +11,7 @@ class Dribbler:
         self.dribbler.stop()
 
     def counterStart(self):
-        self.dribbler.speed = -100
+        self.dribbler.speed = 100
 
 if __name__ == "__main__":
     import robot.consts.data as data

@@ -120,6 +120,8 @@ class Hunt:
         while abs(angle) < 360:
             if not self.running_gate.is_set():  # ------------------------------------------------------------------- Check if end button was pressed.
                 return None
+            
+            print(f"{self.getGoalStatus(obj)}")
 
             if obj == data.Object.Ball and self.camSearch(obj):
                 self.log.info(f"Object {obj.name} Found")
@@ -128,11 +130,11 @@ class Hunt:
                 self.log.info(f"Object {obj.name} Found")
                 return True
 
-            if (obj != data.Object.Ball):
-                time.sleep(0.3)
-
             self.gyroMovement.spinToAngle(angle + 45)
             angle = self.gyro.get_z_angle()
+
+            if (obj != data.Object.Ball):
+                time.sleep(0.3)
 
         self.log.info("Spin search failed...")
         return False
@@ -178,11 +180,11 @@ class Hunt:
     #     return None
 
     def goToBall(self, obj: data.Object = data.Object.Ball):
-        pid = PidCalc(0.3, 0.3, 0.1, 100)
+        pid = PidCalc(0.3, 0.3, 0.1, 100, True)
         pidDist = PidCalc(0.5, 0.3, 0.1, 100)
         xy = (0, 0)
         try:
-            while self.vcnl.proximity < 110 and xy[0] is not None and xy[1] is not None:
+            while self.vcnl.proximity < 115 and xy[0] is not None and xy[1] is not None:
                 xy: list = self.getObjectLocation(obj)
                 angle = math.degrees(math.atan(xy[0] / xy[1]))
 
@@ -238,11 +240,12 @@ class Hunt:
 
     def getGoalStatus(self, obj: data.Object) -> data.GoalStatus:
         dis: tuple = self.getObjectLocation(obj)
+        print(f"{dis=}")
 
         if not dis[0] or not dis[1]:
             return data.GoalStatus.NOT_FOUND
 
-        if dis[0] < data.ROBOT_GOAL_DISTANCE[0] or dis[1] < data.ROBOT_GOAL_DISTANCE[1]:
+        if dis[0] < data.ROBOT_GOAL_DISTANCE[0] and dis[1] < data.ROBOT_GOAL_DISTANCE[1]:
             return data.GoalStatus.CLOSE
 
         return data.GoalStatus.FAR
@@ -304,7 +307,7 @@ class Hunt:
 
                     if goalStatus == data.GoalStatus.FAR:
                         self.log.info("Going to Goal!")
-                        self.goToGoal(obj=obj)
+                        self.goToBall(obj=obj)
 
                     if goalStatus == data.GoalStatus.CLOSE:
                         self.log.info("Kicked Ball!!!!!")
@@ -321,4 +324,4 @@ class Hunt:
 
 if __name__ == "__main__":
     r = Hunt(debug=True)
-    r.spinSearch(obj=data.Object.YellowGoal)
+    r.hunt()
