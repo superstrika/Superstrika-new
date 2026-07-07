@@ -4,7 +4,7 @@ import robot.consts.data as data
 def main():
     motors = multipleMotors(data.MOTOR_PINS)
 
-    motors.setSpeed(0, 30, 0)
+    motors.setSpeed(0, 100, 0)
     input()
     motors.stop()
 

@@ -129,7 +129,7 @@ class MPU6050:
 
     def get_theta(self):
         self.update()
-        return self.theta
+        return self._theta_f
 
     def reset_theta(self):
         self.theta = {'x': 0, 'y': 0, 'z': 0}

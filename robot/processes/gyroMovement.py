@@ -26,24 +26,22 @@ class GyroMovement:
         else:
             self.motors = multipleMotors(data.MOTOR_PINS)
 
-    def spinToAngle(self, setPoint: int, pidValues: tuple=(0.85, 0.9, 0.1, 100), errorOffset: float=1) -> None:
+    def spinToAngle(self, setPoint: int, pidValues: tuple=(2, 2, 0.1, 100), errorOffset: float=0.5) -> None:
         error: float = setPoint - self.gyro.get_z_angle()
         pid = PidCalc(*pidValues, startError=error)
 
         while abs(error) > errorOffset:
             speed: float = pid.pidCalc(error)
-
-            # if 10 < speed < 25:
-            #     speed += 15
-
-            # if -10 > speed > -25:
-            #     speed -= 15
+            print(speed)
 
             self.motors.setSpeed(0, 0, speed)
 
             # sleep(0.3)
             error: float = setPoint - self.gyro.get_z_angle()
-        print(f"{error=}")
+            print(f"{error=}")
+        self.motors.stophard()
+        sleep(0.3)
+        print(f"{self.gyro.get_z_angle()}")
 
     def move_forward_cm(self, distance_cm: float, speed=(30,30), pidValues: tuple=(1.5, 0.01, 0.1, 100)):
         """
@@ -84,5 +82,5 @@ class GyroMovement:
 
 if __name__ == "__main__":
     s = GyroMovement()
-    # s.spinToAngle(45)
-    # s.move_forward_cm(25, pidValues=(0.4, 0.01, 0.1, 100), speed=(40, 40))
+    s.spinToAngle(30, (2, 2, 0.1, 100))
+    # s.move_forward_cm(25, pidValues=(0.4, 0.01, 0.1, 100), speed=(0, 40))

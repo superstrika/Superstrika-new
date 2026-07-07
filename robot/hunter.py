@@ -180,19 +180,20 @@ class Hunt:
     #     return None
 
     def goToBall(self, obj: data.Object = data.Object.Ball):
-        pid = PidCalc(0.3, 0.3, 0.1, 100, True)
-        pidDist = PidCalc(0.5, 0.3, 0.1, 100)
+        pid = PidCalc(0.35, 0.2, 0.0, 100, True)
+        pidDist = PidCalc(1, 0.3, 0.0, 100)
         xy = (0, 0)
         try:
             while self.vcnl.proximity < 115 and xy[0] is not None and xy[1] is not None:
                 xy: list = self.getObjectLocation(obj)
-                angle = math.degrees(math.atan(xy[0] / xy[1]))
+                print(f"{xy=}")
+                angle = math.degrees(math.atan((xy[0] / xy[1]) if xy[1] != 0 else 0))
 
 
                 correction = pid.pidCalc(-angle)
                 speedY = pidDist.pidCalc(math.sqrt(xy[0] ** 2 + xy[1] ** 2))
 
-                self.motors.setSpeed(0, speedY, correction)
+                self.motors.setSpeed(0, speedY, correction, back_only=(self.vcnl.proximity > 100))
                 time.sleep(0.01)
         except Exception as e:
             print(e)
@@ -324,4 +325,7 @@ class Hunt:
 
 if __name__ == "__main__":
     r = Hunt(debug=True)
-    r.hunt()
+    # r.hunt()
+    r.goToBall()
+    # while True:
+    #     r.spinSearch()
