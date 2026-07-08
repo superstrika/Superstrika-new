@@ -3,17 +3,21 @@ from robot.consts.enum import Object, GoalStatus, BallStatus
 from robot.consts.data import BALL_SIZE_CM, GOAL_SIZE_CM, CAMERA_HEIGHT_CM
 
 import math
+from ultralytics import YOLO
+from picamera2 import Picamera2
+import cv2
 
 class RaspiCamera(ICamera):
-    _focalLength: float = 0.0
-    _imageSize: tuple[int] = (0, 0)
+    _focalLength: float
+    _imageSize: tuple[int]
 
     def __init__(self, modelPath: str,
-                 objectNames: tuple[str] = ("Ball", "BlueGoal", "YellowGoal"),
+                 objectNames: dict[str, Object] = {"Ball": Object.Ball, "BlueGoal": Object.BlueGoal, "YellowGoal": Object.YellowGoal},
                  focalLength: float = 0.0,
                  imageSize: tuple[int] = (256, 256)):
         
         _imageSize = imageSize
+        self._objectNames = objectNames
         
         """
         holds the screen XY cordinates and size of the objects that are currently on screen
@@ -27,6 +31,18 @@ class RaspiCamera(ICamera):
         }
 
         _focalLength = focalLength
+
+        # model configuration:
+        self._model = YOLO(modelPath)
+
+        # camera configuration:
+        self._picam = Picamera2()
+        previewConfig = self._picam.preview_configuration
+        previewConfig.main.size = _imageSize
+        previewConfig.main.format = "RGB888"
+        self._picam.configure("preview")
+
+        self._picam.start()
         
         # calibration:
         if self._focalLength == 0.0:
@@ -36,7 +52,40 @@ class RaspiCamera(ICamera):
         ...
 
     def updateObjects(self):
-        ...
+        frame = self._picam.capture_array()
+        bgrFrame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+
+        results = self._model(bgrFrame, stream=True, conf=0.25)
+
+        objects: dict[Object, dict] = {}
+
+        for result in results:
+            classTable = result.names
+
+            for box in result.boxes:
+                x, y, w, h = box.xywh[0].tolist()
+                
+                try:
+                    obj = self._objectNames[classTable[int(box.cls)]]
+                except Exception as e:
+                    print(f"Foreign object detected! {e}")
+                area = w * h
+
+                if obj not in objects or area > objects[obj]['area']:
+                    objects[obj] = {
+                        'x': x,
+                        'y': y,
+                        'width': w,
+                        'height': h,
+                        'area': area 
+                    }
+        
+        for obj in [Object.Ball, Object.BlueGoal, Object.YellowGoal]:
+            if obj in objects:
+                info = objects[obj]
+                self._objects[obj] = ((info['width'], info['height']), (info['x'], info['y']))
+            else:
+                self._objects[obj] = ((None, None), (None, None))
 
     @staticmethod
     def calculateDistance(objectInfo: tuple[float], obj: Object) -> tuple[float]:
