@@ -37,6 +37,14 @@ LOG_PATH: str = './logs/main.log'
 LOG_FORMAT: str = "[%(levelname)s] %(cls)s: %(funcName)s: %(message)s"
 
 """----------------------------------------------
+              Camera size configuration
+----------------------------------------------"""
+
+BALL_SIZE_CM: float = 4.3
+GOAL_SIZE_CM: float = 64.0
+CAMERA_HEIGHT_CM: float = 13.0
+
+"""----------------------------------------------
               Hunt Configuration
 ----------------------------------------------"""
 ROTATION_SPEED: int = 25
@@ -58,26 +66,3 @@ SELF_IS_BLUE: bool = True
 import socket
 
 SELF_IS_HUNTER: bool = True if socket.gethostname() == "superstrika" else False
-
-"""----------------------------------------------
-              Enum configuration
-----------------------------------------------"""
-
-from enum import Enum
-
-class BallStatus(Enum):
-    NOT_FOUND = 0
-    CAM_DETECTED = 1
-    VCNL_CLOSE = 2
-    CAM_DETECTED_AND_VCNL_CLOSE = 3
-    VCNL_IN_KICKER = 4
-
-class GoalStatus(Enum):
-    NOT_FOUND = 0
-    CLOSE = 1
-    FAR = 2
-
-class Object(Enum):
-    Ball = 0
-    BlueGoal = 1
-    YellowGoal = 2
