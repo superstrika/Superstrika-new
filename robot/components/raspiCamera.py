@@ -6,6 +6,7 @@ import math
 from ultralytics import YOLO
 from picamera2 import Picamera2
 import cv2
+import time
 
 class RaspiCamera(ICamera):
     _focalLength: float
@@ -24,11 +25,8 @@ class RaspiCamera(ICamera):
         Maps to:
         obj: ((sizeX, sizeY), (cordX, cordY))
         """
-        self._objects: dict[Object, tuple[tuple[float | None, float | None], tuple[float | None, float | None]]] = {
-            Object.Ball: ((None, None), (None, None)),
-            Object.BlueGoal: ((None, None), (None, None)),
-            Object.YellowGoal: ((None, None), (None, None))
-        }
+        self._objects: dict[Object, tuple[tuple[float | None, float | None], tuple[float | None, float | None]]] = {}
+        self.clearObjects()
 
         _focalLength = focalLength
 
@@ -48,10 +46,48 @@ class RaspiCamera(ICamera):
         if self._focalLength == 0.0:
             self.calibrate()
 
-    def calibrate(self):
-        ...
+    def clearObjects(self):
+        """Clears all the object information"""
 
-    def updateObjects(self):
+        self._objects = {
+            Object.Ball: ((None, None), (None, None)),
+            Object.BlueGoal: ((None, None), (None, None)),
+            Object.YellowGoal: ((None, None), (None, None))
+        }
+
+    def calibrate(self, calibrationDistanceCM: int, timeoutSec: int = 15) -> None:
+        """calibrates the focal length using an orange ball at a known distance.
+
+        Args:
+            calibrationDistanceCM (int): the distance between the camera and the ball (not it's projection!)
+            timeoutSec (int, optional): the waiting time for a ball to "show up". Defaults to 15.
+        """
+        self.clearObjects()
+
+        start = time.time()
+        print(f"Calibration: place orange ball at {calibrationDistanceCM} cm.")
+
+        while time.time() - start < timeoutSec and RaspiCamera._focalLength == 0:
+            self.updateObjects()
+
+            if not self.isObjectDetected(Object.Ball):
+                continue
+
+            ballInfo = self._objects[Object.Ball]
+
+            preceivedSize = (ballInfo[0][0] + ballInfo[0][1]) / 2.0
+            if preceivedSize > 0:
+                RaspiCamera._focalLength = (preceivedSize * calibrationDistanceCM) / BALL_SIZE_CM
+                print(f"Calibration complete. {RaspiCamera._focalLength=}")
+                return
+        
+        print(f"Calibration ended. {RaspiCamera._focalLength=}")
+
+    def updateObjects(self) -> None:
+        """Updates the object information by capturing an image,
+        and making the model look for the objects in it.
+        """
+        
         frame = self._picam.capture_array()
         bgrFrame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
 
