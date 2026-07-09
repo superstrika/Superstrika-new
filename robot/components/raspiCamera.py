@@ -7,7 +7,32 @@ from ultralytics import YOLO
 from picamera2 import Picamera2
 import cv2
 import time
+from dataclasses import dataclass
 
+@dataclass
+class ObjectInfo:
+    """Struct of Object size metrics and screen location:
+    1. height, width: float | None - the object's size in centimeters.
+    2. x, y: float | None - the object's location in screen (in captured image) in pixels.
+    3. area: float - the object's area in pixel^2.
+    """
+
+    height: float | None
+    width: float | None
+    x: float | None
+    y: float | None
+    area: float | None
+
+@dataclass
+class DisplacementVector: 
+    """Struct of Object displacement vector:
+    1. distance: float - the distance in centimeters.
+    2. angle: float - the angle in degress.
+    """
+
+    distance: float
+    angle: float
+        
 class RaspiCamera(ICamera):
     _focalLength: float
     _imageSize: tuple[int]
@@ -17,18 +42,13 @@ class RaspiCamera(ICamera):
                  focalLength: float = 0.0,
                  imageSize: tuple[int] = (256, 256)):
         
-        _imageSize = imageSize
+        RaspiCamera._imageSize = imageSize
+        RaspiCamera._focalLength = focalLength
         self._objectNames = objectNames
         
-        """
-        holds the screen XY cordinates and size of the objects that are currently on screen
-        Maps to:
-        obj: ((sizeX, sizeY), (cordX, cordY))
-        """
-        self._objects: dict[Object, tuple[tuple[float | None, float | None], tuple[float | None, float | None]]] = {}
+        # object configuration:
+        self._objects: dict[Object, ObjectInfo] = {}
         self.clearObjects()
-
-        _focalLength = focalLength
 
         # model configuration:
         self._model = YOLO(modelPath)
@@ -36,7 +56,7 @@ class RaspiCamera(ICamera):
         # camera configuration:
         self._picam = Picamera2()
         previewConfig = self._picam.preview_configuration
-        previewConfig.main.size = _imageSize
+        previewConfig.main.size = RaspiCamera._imageSize
         previewConfig.main.format = "RGB888"
         self._picam.configure("preview")
 
@@ -46,13 +66,13 @@ class RaspiCamera(ICamera):
         if self._focalLength == 0.0:
             self.calibrate()
 
-    def clearObjects(self):
+    def clearObjects(self) -> None:
         """Clears all the object information"""
 
         self._objects = {
-            Object.Ball: ((None, None), (None, None)),
-            Object.BlueGoal: ((None, None), (None, None)),
-            Object.YellowGoal: ((None, None), (None, None))
+            Object.Ball: ObjectInfo(),
+            Object.BlueGoal: ObjectInfo(),
+            Object.YellowGoal: ObjectInfo()
         }
 
     def calibrate(self, calibrationDistanceCM: int, timeoutSec: int = 15) -> None:
@@ -75,7 +95,7 @@ class RaspiCamera(ICamera):
 
             ballInfo = self._objects[Object.Ball]
 
-            preceivedSize = (ballInfo[0][0] + ballInfo[0][1]) / 2.0
+            preceivedSize = (ballInfo.width + ballInfo.height) / 2.0
             if preceivedSize > 0:
                 RaspiCamera._focalLength = (preceivedSize * calibrationDistanceCM) / BALL_SIZE_CM
                 print(f"Calibration complete. {RaspiCamera._focalLength=}")
@@ -93,7 +113,7 @@ class RaspiCamera(ICamera):
 
         results = self._model(bgrFrame, stream=True, conf=0.25)
 
-        objects: dict[Object, dict] = {}
+        objects: dict[Object, ObjectInfo] = {}
 
         for result in results:
             classTable = result.names
@@ -107,28 +127,21 @@ class RaspiCamera(ICamera):
                     print(f"Foreign object detected! {e}")
                 area = w * h
 
-                if obj not in objects or area > objects[obj]['area']:
-                    objects[obj] = {
-                        'x': x,
-                        'y': y,
-                        'width': w,
-                        'height': h,
-                        'area': area 
-                    }
+                if obj not in objects or area > objects[obj].area:
+                    objects[obj] = ObjectInfo(h, w, x, y, area)
         
         for obj in [Object.Ball, Object.BlueGoal, Object.YellowGoal]:
             if obj in objects:
-                info = objects[obj]
-                self._objects[obj] = ((info['width'], info['height']), (info['x'], info['y']))
+                self._objects[obj] = objects[obj]
             else:
-                self._objects[obj] = ((None, None), (None, None))
+                self._objects[obj] = ObjectInfo()
 
     @staticmethod
-    def calculateDistance(objectInfo: tuple[float], obj: Object) -> tuple[float]:
+    def calculateDistance(objectInfo: ObjectInfo, obj: Object) -> DisplacementVector:
         """calculates the distance and angle of the ball from the robot
 
         Args:
-            objectInfo (tuple[float]): [0] - object size. [1] - screen XY cords.
+            objectInfo (ObjectInfo): the detected object's info (width, height, x, y).
             obj (Object): Ball / BlueGoal / YellowGoal
 
         Returns:
@@ -138,20 +151,20 @@ class RaspiCamera(ICamera):
         """
         
         actualSize: float = BALL_SIZE_CM if obj == Object.Ball else GOAL_SIZE_CM
-        averageDetectedSize: float = (objectInfo[0][0] + objectInfo[0][1]) / 2.0
+        averageDetectedSize: float = (objectInfo.width + objectInfo.height) / 2.0
         directDistance: float = (actualSize * RaspiCamera._focalLength) / (averageDetectedSize)
         
         floorProjectionDistance: float = math.sqrt(max(directDistance**2 - CAMERA_HEIGHT_CM**2, 0.0))
         
         screenCenterXCord: int = RaspiCamera._imageSize[0] / 2.0
-        ballCenteredXCord: float = objectInfo[1][0] - screenCenterXCord
+        ballCenteredXCord: float = objectInfo.x - screenCenterXCord
 
         actualXDistance: float = ballCenteredXCord * actualSize / averageDetectedSize
 
         angle: float = math.degrees(math.asin(actualXDistance / floorProjectionDistance))
-        return (floorProjectionDistance, angle)
+        return DisplacementVector(floorProjectionDistance, angle)
 
-    def getObjects(self) -> dict[Object, tuple[float | None, float | None]]:
+    def getObjects(self) -> dict[Object, DisplacementVector | None]:
         """calculates the distance and angle for all objects
 
         Returns:
@@ -160,14 +173,14 @@ class RaspiCamera(ICamera):
             [1] - angle (deg).
         """
 
-        objects: dict = {}
+        objects: dict[Object, DisplacementVector | None] = {}
         for obj in [Object.Ball, Object.BlueGoal, Object.YellowGoal]:
-            if any(None in t for t in self._objects[obj]):
-               objects[obj] = (None, None)
+            if any(value is None for value in self._objects[obj].__dict__.values()):
+               objects[obj] = None
             else:
                 objects[obj] = self.calculateDistance(self._objects[obj], obj) 
         
-        return objects
+        return objects 
 
     def isObjectDetected(self, obj: Object) -> bool:
         """checks if a given object is detected.
@@ -179,7 +192,7 @@ class RaspiCamera(ICamera):
             bool: Returns wether the object was detected.
         """
 
-        return not any(None in t for t in self._objects[obj])
+        return not any(value is None for value in self._objects[obj].__dict__.values())
 
     def getObjectsStatus(self) -> dict[Object, GoalStatus | BallStatus]:
         """Pure Virtual method; must be overriden"""
