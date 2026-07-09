@@ -88,7 +88,7 @@ class Hunt:
         """
         Changes camera angle until ball is found.
         :param delay: the delay each change of angle.
-        :return: [0] - X coordinate of the returned object. [1] - Y coordinate of the returned object. None if not found.
+        :return: True for success or False for fail\
         """
 
         self.log.info("Initializing Camera Search...")
@@ -108,7 +108,7 @@ class Hunt:
         :param delay: the delay between the start of spinning to first angle check.
         :param right: the direction of the spinning
         :param obj: which object to search: ball, yellow goal or blue goal
-        :return: [0] - X coordinate of the returned object. [1] - Y coordinate of the returned object. None if not found.
+        :return: True if found, False if failed. None if stopped by gate+.
         """
 
         self.log.info("Initializing Spin Search...")
@@ -139,23 +139,22 @@ class Hunt:
     def goToBall(self, obj: data.Object = data.Object.Ball):
         pid = PidCalc(0.35, 0.2, 0.0, 100, True)
         pidDist = PidCalc(1, 0.3, 0.0, 100)
-        xy = (0, 0)
+        error = self.camera.getObjects()[obj]
         try:
-            while self.vcnl.proximity < 115 and xy[0] is not None and xy[1] is not None:
-                error = self.camera.getObjects()[obj]
-                # print(f"{xy=}")
-
+            while self.vcnl.proximity < 115 and error:
                 correction = pid.pidCalc(-error.angle)
                 speedY = pidDist.pidCalc(error.distance)
 
                 self.motors.setSpeed(0, speedY, correction, back_only=(self.vcnl.proximity > 100))
                 time.sleep(0.01)
+
+                error = self.camera.getObjects()[obj]
         except Exception as e:
-            print(e)
+            self.log.error(f"{e}")
         finally:
             self.motors.stophard()
 
-        if xy[0] is None or xy[1] is None:
+        if not self.camera.isObjectDetected(obj):
             self.motors.stop()
             self.tryBallDownSearch(obj)
             return None
