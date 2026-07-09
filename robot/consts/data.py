@@ -52,11 +52,11 @@ ROTATION_SPEED: int = 25
 SPIN_SEARCH_ERROR: float = 3
 SPIN_TO_BALL_ERROR: float = 1.5
 GO_TO_BALL_ERROR: float = 1
-ROBOT_BALL_DISTANCE: tuple[float, float] = (0, 0)
-ROBOT_GOAL_DISTANCE: tuple[float, float] = (25, 25)
+# ROBOT_BALL_DISTANCE: tuple[float, float] = (0, 0)
+ROBOT_GOAL_DISTANCE: int = 25
 
-VCNL_PROX_CLOSE = 115
-VCNL_PROX_IN_KICKER = 140
+VCNL_PROX_CLOSE: int = 115
+VCNL_PROX_IN_KICKER: int = 140
 
 """----------------------------------------------
               Game configuration

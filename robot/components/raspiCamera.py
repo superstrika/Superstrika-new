@@ -1,6 +1,7 @@
 from robot.abstracts.ICamera import ICamera
 from robot.consts.enum import Object, GoalStatus, BallStatus
 from robot.consts.data import BALL_SIZE_CM, GOAL_SIZE_CM, CAMERA_HEIGHT_CM
+from robot.consts.data import VCNL_PROX_IN_KICKER, VCNL_PROX_CLOSE, ROBOT_GOAl_DISTANCE
 
 import math
 from ultralytics import YOLO
@@ -180,7 +181,7 @@ class RaspiCamera(ICamera):
             else:
                 objects[obj] = self.calculateDistance(self._objects[obj], obj) 
         
-        return objects 
+        return objects
 
     def isObjectDetected(self, obj: Object) -> bool:
         """checks if a given object is detected.
@@ -194,6 +195,33 @@ class RaspiCamera(ICamera):
 
         return not any(value is None for value in self._objects[obj].__dict__.values())
 
-    def getObjectsStatus(self) -> dict[Object, GoalStatus | BallStatus]:
-        """Pure Virtual method; must be overriden"""
-        pass
+    def getObjectsStatus(self, vcnlProximity: int = 0) -> dict[Object, GoalStatus | BallStatus]:
+        distances = self.getObjects()
+        statuses: dict[Object, GoalStatus | BallStatus] = {}
+
+        for goal in [Object.BlueGoal, Object.YellowGoal]:
+            if not distances[goal]:
+                statuses[goal] = GoalStatus.NOT_FOUND
+            elif distances[goal].distance < ROBOT_GOAl_DISTANCE:
+                statuses[goal] = GoalStatus.CLOSE
+            else:
+                statuses[goal] = GoalStatus.FAR
+
+        camFound = True if distances[Object.Ball] else False
+
+        if not camFound and vcnlProximity < VCNL_PROX_CLOSE:
+            statuses[Object.Ball] = BallStatus.NOT_FOUND
+        elif camFound and vcnlProximity < VCNL_PROX_CLOSE:
+            statuses[Object.Ball] = BallStatus.CAM_DETECTED
+        elif not camFound and VCNL_PROX_CLOSE < vcnlProximity < VCNL_PROX_IN_KICKER:
+            statuses[Object.Ball] = BallStatus.VCNL_CLOSE
+        elif not camFound and VCNL_PROX_IN_KICKER < vcnlProximity:
+            statuses[Object.Ball] = BallStatus.VCNL_IN_KICKER
+        else:
+            statuses[Object.Ball] = BallStatus.CAM_DETECTED_AND_VCNL_CLOSE
+        
+        return statuses
+            
+            
+            
+
