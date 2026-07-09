@@ -93,13 +93,11 @@ class Hunt:
 
         self.log.info("Initializing Camera Search...")
 
-        pv = self.camera.getObjects()[obj]
-
         for angle in range(data.MAX_ANGLE, data.MIN_ANGLE, -35):
             self.servo.angle = angle
-            pv = self.camera.getObjects()[obj]
-            if pv[0] is not None and pv[1] is not None:
+            if self.camera.isObjectDetected(obj):
                 return True
+            
             time.sleep(0.2)
         
         return False
@@ -144,13 +142,11 @@ class Hunt:
         xy = (0, 0)
         try:
             while self.vcnl.proximity < 115 and xy[0] is not None and xy[1] is not None:
-                xy: list = self.camera.getObjects()[obj]
-                print(f"{xy=}")
-                angle = math.degrees(math.atan((xy[0] / xy[1]) if xy[1] != 0 else 0))
+                error = self.camera.getObjects()[obj]
+                # print(f"{xy=}")
 
-
-                correction = pid.pidCalc(-angle)
-                speedY = pidDist.pidCalc(math.sqrt(xy[0] ** 2 + xy[1] ** 2))
+                correction = pid.pidCalc(-error.angle)
+                speedY = pidDist.pidCalc(error.distance)
 
                 self.motors.setSpeed(0, speedY, correction, back_only=(self.vcnl.proximity > 100))
                 time.sleep(0.01)
@@ -166,25 +162,22 @@ class Hunt:
 
 
     def tryBallDownSearch(self, obj: data.Object = data.Object.Ball) -> None:
-        pv = self.camera.getObjects()[obj]
 
         for angle in range(data.MAX_ANGLE, data.MIN_ANGLE, -20):
             self.servo.angle = angle
-            pv = self.camera.getObjects()[obj]
-            if pv[0] is not None and pv[1] is not None:
+            if self.camera.isObjectDetected(obj):
                 if angle <= data.MIN_ANGLE:
                     self.gyroMovement.move_forward_cm(20, (0, 40))
                 self.servo.angle = angle - 15
                 self.goToBall(obj=obj)
-                return None
+                return
     
     def goToGoal(self, obj: data.Object):
-        xy: list = self.camera.getObjects()[obj]
-        angle = math.degrees(math.atan(xy[0] / xy[1]))
+        error = self.camera.getObjects()[obj]
 
-        self.log.debug(f"Found Ball at angle: {angle}. x: {xy[0]}, y: {xy[1]}")
+        self.log.debug(f"Found Ball at angle: {error.angle}. distance: {error.distance}")
 
-        self.gyroMovement.spinToAngle(-angle)
+        self.gyroMovement.spinToAngle(-error.distance)
 
         self.gyroMovement.move_until(speed=(0, 30), until=lambda: self.vcnl.proximity > 100)
 
