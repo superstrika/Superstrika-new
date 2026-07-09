@@ -1,11 +1,11 @@
 from robot.processes.pidCalc import PidCalc
 import robot.consts.data as data
 import robot.processes.multipleMotors
-import robot.components.camera
+import robot.components.openmvCamera
 
 def go():
     motors = robot.processes.multipleMotors.multipleMotors(data.MOTOR_PINS)
-    camera = robot.components.camera.Camera7046()
+    camera = robot.components.openmvCamera.OpenmvCamera()
 
 
     sp = data.ROBOT_BALL_DISTANCE

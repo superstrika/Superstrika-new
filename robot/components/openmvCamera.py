@@ -1,7 +1,10 @@
 import serial
 import logging
+from robot.abstracts.ICamera import ICamera, DisplacementVector
+from robot.consts.enum import Object, GoalStatus, BallStatus
+import math
 
-class Camera7046:
+class OpenmvCamera(ICamera):
     def __init__(self, freq=115200):
         self.ser = serial.Serial(
             port='/dev/ttyACM0',
@@ -125,9 +128,35 @@ class Camera7046:
         if blueGoal:
             return self.getBlueGoalLocation()
         return self.getYellowGoalLocation()
+    
+    @staticmethod
+    def convertToVector(info: tuple[float | None, float | None]) -> DisplacementVector | None:
+        if not info[0] or not info[1]:
+            return None
+        
+        return DisplacementVector(
+            math.sqrt(info[0]**2 + info[1]**2),
+            math.degrees(math.atan(info[0] / info[1]))
+        )
+
+    def getObjects(self) -> dict[Object, DisplacementVector]:
+        return {
+            Object.Ball: OpenmvCamera.convertToVector(self.getBallLocation()),
+            Object.YellowGoal: OpenmvCamera.convertToVector(self.getYellowGoalLocation()),
+            Object.BlueGoal: OpenmvCamera.convertToVector(self.getBlueGoalLocation())
+        }
+
+    def isObjectDetected(self, obj: Object) -> bool:
+        if obj == Object.Ball:
+            return not None in self.getBallLocation()
+        
+        if obj == Object.YellowGoal:
+            return not None in self.getYellowGoalLocation()
+        
+        return not None in self.getBlueGoalLocation()
 
 
 if __name__ == "__main__":
-    ser = Camera7046()
+    ser = OpenmvCamera()
     while True:
         print(ser.getYellowGoalLocation())

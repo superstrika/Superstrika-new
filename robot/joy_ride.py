@@ -8,7 +8,7 @@ import robot.components.dribbler as dribbler
 import robot.consts.data as data
 # from robot.components.vcnl import VCNL4040 as VCNL
 import logging
-import robot.components.camera as camera
+import robot.components.openmvCamera as openmvCamera
 from robot.processes.pidCalc import PidCalc
 import robot.processes.gyroMovement as gyroMovement
 import robot.processes.multipleMotors as multipleMotors
@@ -38,7 +38,7 @@ class Ride:
 
         # sensors
         self.gyro = gyro.MPU6050(self.i2c)
-        self.camera = camera.Camera7046(data.SERIAL_FREQUENCY)
+        self.camera = openmvCamera.OpenmvCamera(data.SERIAL_FREQUENCY)
 
         # vcnl
         # self.vcnl = VCNL()

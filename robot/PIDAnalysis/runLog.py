@@ -1,6 +1,6 @@
 from .pidCalcLog import PidCalc
 import robot.processes.multipleMotors as multipleMotors
-import robot.components.camera as camera
+import robot.components.openmvCamera as openmvCamera
 import robot.consts.data as data
 import logging
 import sys
@@ -18,7 +18,7 @@ def moveToBall(sp):
         )
     log.logger.addHandler(console_handler)
 
-    cam = camera.Camera7046()
+    cam = openmvCamera.OpenmvCamera()
     # motors = multipleMotors.multipleMotors(data.MOTOR_PINS)
 
     pidY = PidCalc(0.6, 0, 0, 100, verbose=True, csv_output="log/log.csv")
