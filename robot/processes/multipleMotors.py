@@ -1,8 +1,13 @@
 import logging
 import robot.components.motor as motor
+import math
 
 class multipleMotors:
-    def __init__(self, pins: list[int], parent=None):
+    _CROSS_ANGLE: int
+
+    def __init__(self, pins: list[int], crossAngle: int = 90, parent=None):
+
+        multipleMotors._CROSS_ANGLE = crossAngle
 
         self.parent = parent
 
@@ -39,6 +44,12 @@ class multipleMotors:
     def setSpeed(self, Vx: float, Vy: float, rotation: float, bypass_priority: bool=False, back_only: bool=False):
         self.waitForLock(bypass_priority=bypass_priority)
 
+        VxScale = math.sin(math.radians(multipleMotors._CROSS_ANGLE / 2.0))
+        VyScale = math.cos(math.radians(multipleMotors._CROSS_ANGLE / 2.0))
+
+        Vx *= VxScale
+        Vy *= VyScale
+
         # Front Right
         wheel1_speed = (Vy - Vx + rotation) if not back_only else 0.0
         # Rear Right
@@ -49,7 +60,6 @@ class multipleMotors:
         wheel4_speed = (-Vx - Vy + rotation) if not back_only else 0.0
 
         speeds = [wheel1_speed, wheel2_speed, wheel3_speed, wheel4_speed]
-        # print(f"{speeds=}")
 
         self.log.debug(f"{speeds=}")
 
