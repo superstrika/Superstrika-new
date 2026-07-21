@@ -15,7 +15,7 @@ class WebCamera(ICamera):
     def __init__(self, modelPath: str,
                  objectNames: dict[str, Object] = {"Ball": Object.Ball, "BlueGoal": Object.BlueGoal, "YellowGoal": Object.YellowGoal},
                  focalLength: float = 0.0,
-                 imageSize: tuple[int] = (256, 256),
+                 imageSize: tuple[int] = (512, 512),
                  outputDir: str = "saved_frames"):
         
         WebCamera._imageSize = imageSize
@@ -35,8 +35,8 @@ class WebCamera(ICamera):
 
         # Camera configuration
         self._webcam = cv2.VideoCapture(0)
-        self._webcam.set(cv2.CAP_PROP_FRAME_WIDTH, WebCamera._imageSize[0])
-        self._webcam.set(cv2.CAP_PROP_FRAME_HEIGHT, WebCamera._imageSize[1])
+        # self._webcam.set(cv2.CAP_PROP_FRAME_WIDTH, WebCamera._imageSize[0])
+        # self._webcam.set(cv2.CAP_PROP_FRAME_HEIGHT, WebCamera._imageSize[1])
         
         # Calibration
         if self._focalLength == 0.0:
@@ -84,6 +84,13 @@ class WebCamera(ICamera):
 
         # Frame dimensions
         frame_h, frame_w, _ = frame.shape
+
+        min_dim = min(frame_h, frame_w)
+        start_x = (frame_w - min_dim) // 2
+        start_y = (frame_h - min_dim) // 2
+
+        frame = cv2.resize(frame[start_y:start_y + min_dim, start_x:start_x + min_dim], WebCamera._imageSize, interpolation=cv2.INTER_AREA)
+
         center_x, center_y = frame_w // 2, frame_h // 2
         print(f"{WebCamera._imageSize[0]}")
         results = self._model(frame, stream=True, conf=0.25, imgsz=WebCamera._imageSize[0])
@@ -152,8 +159,8 @@ class WebCamera(ICamera):
     def calculateDistance(objectInfo: ObjectInfo, obj: Object) -> DisplacementVector:
         """Calculates distance and angle from camera."""
         actualSize: float = BALL_SIZE_CM if obj == Object.Ball else GOAL_SIZE_CM
-        # averageDetectedSize: float = (objectInfo.width + objectInfo.height) / 2.0
-        averageDetectedSize: float = objectInfo.width
+        averageDetectedSize: float = (objectInfo.width + objectInfo.height) / 2.0
+        # averageDetectedSize: float = objectInfo.width
         directDistance: float = (actualSize * WebCamera._focalLength) / (averageDetectedSize)
         
         floorProjectionDistance: float = math.sqrt(max(directDistance**2 - CAMERA_HEIGHT_CM**2, 0.0))
