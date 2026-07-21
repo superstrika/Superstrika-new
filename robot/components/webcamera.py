@@ -6,7 +6,8 @@ import math
 from ultralytics import YOLO
 import cv2
 import time
-        
+import os
+
 class WebCamera(ICamera):
     _focalLength: float
     _imageSize: tuple[int]
@@ -14,29 +15,35 @@ class WebCamera(ICamera):
     def __init__(self, modelPath: str,
                  objectNames: dict[str, Object] = {"Ball": Object.Ball, "BlueGoal": Object.BlueGoal, "YellowGoal": Object.YellowGoal},
                  focalLength: float = 0.0,
-                 imageSize: tuple[int] = (256, 256)):
+                 imageSize: tuple[int] = (256, 256),
+                 outputDir: str = "saved_frames"):
         
         WebCamera._imageSize = imageSize
         WebCamera._focalLength = focalLength
         self._objectNames = objectNames
         
-        # object configuration:
+        # Folder to save output images
+        self._outputDir = outputDir
+        os.makedirs(self._outputDir, exist_ok=True)
+        
+        # Object configuration
         self._objects: dict[Object, ObjectInfo] = {}
         self.clearObjects()
 
-        # model configuration:
+        # Model configuration
         self._model = YOLO(modelPath)
 
-        # camera configuration
+        # Camera configuration
         self._webcam = cv2.VideoCapture(0)
+        self._webcam.set(cv2.CAP_PROP_FRAME_WIDTH, WebCamera._imageSize[0])
+        self._webcam.set(cv2.CAP_PROP_FRAME_HEIGHT, WebCamera._imageSize[1])
         
-        # calibration:
+        # Calibration
         if self._focalLength == 0.0:
             self.calibrate(50)
 
     def clearObjects(self) -> None:
         """Clears all the object information"""
-
         self._objects = {
             Object.Ball: ObjectInfo.empty(),
             Object.BlueGoal: ObjectInfo.empty(),
@@ -44,12 +51,7 @@ class WebCamera(ICamera):
         }
 
     def calibrate(self, calibrationDistanceCM: int, timeoutSec: int = 15) -> None:
-        """calibrates the focal length using an orange ball at a known distance.
-
-        Args:
-            calibrationDistanceCM (int): the distance between the camera and the ball (not it's projection!)
-            timeoutSec (int, optional): the waiting time for a ball to "show up". Defaults to 15.
-        """
+        """Calibrates the focal length using an orange ball at a known distance."""
         input(f"Calibration needed! Put the ball {calibrationDistanceCM} cm away from the camera and click enter.")
         self.clearObjects()
 
@@ -73,16 +75,18 @@ class WebCamera(ICamera):
         print(f"Calibration ended. {WebCamera._focalLength=}")
 
     def updateObjects(self) -> None:
-        """Updates the object information by capturing an image,
-        and making the model look for the objects in it.
+        """Updates the object information, overlays center crosshair, bounding boxes,
+        and screen coordinates, then saves the image to a folder.
         """
-        
         ret, frame = self._webcam.read()
-        if not ret: return None
-        # bgrFrame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+        if not ret: 
+            return None
 
+        # Frame dimensions
+        frame_h, frame_w, _ = frame.shape
+        center_x, center_y = frame_w // 2, frame_h // 2
+        print(f"{WebCamera._imageSize[0]}")
         results = self._model(frame, stream=True, conf=0.25, imgsz=WebCamera._imageSize[0])
-
         objects: dict[Object, ObjectInfo] = {}
 
         for result in results:
@@ -91,37 +95,65 @@ class WebCamera(ICamera):
             for box in result.boxes:
                 x, y, w, h = box.xywh[0].tolist()
                 
+                # Bounding box corners for drawing
+                x1, y1 = int(x - w / 2), int(y - h / 2)
+                x2, y2 = int(x + w / 2), int(y + h / 2)
+
+                cls_idx = int(box.cls)
+                class_name = classTable.get(cls_idx, "Unknown")
+
                 try:
-                    obj = self._objectNames[classTable[int(box.cls)]]
-                except Exception as e:
-                    print(f"Foreign object detected! {e}")
+                    obj = self._objectNames[class_name]
+                except KeyError:
+                    print(f"Foreign object detected! {class_name}")
+                    obj = None
+
                 area = w * h
 
-                if obj not in objects or area > objects[obj].area:
+                if obj and (obj not in objects or area > objects[obj].area):
                     objects[obj] = ObjectInfo(h, w, x, y, area)
-        
+
+                # --- 1. Draw Bounding Box ---
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+
+                # --- 2. Draw Coordinates & Label ---
+                label = f"{class_name} ({int(x)}, {int(y)})"
+                cv2.putText(
+                    frame, 
+                    label, 
+                    (x1, max(y1 - 10, 20)), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 
+                    0.5, 
+                    (0, 255, 0), 
+                    1, 
+                    cv2.LINE_AA
+                )
+
+        # Update detected internal state
         for obj in [Object.Ball, Object.BlueGoal, Object.YellowGoal]:
             if obj in objects:
                 self._objects[obj] = objects[obj]
             else:
                 self._objects[obj] = ObjectInfo.empty()
 
+        # --- 3. Draw White Center Crosshair ---
+        white_color = (255, 255, 255)
+        # Horizontal line across the center
+        cv2.line(frame, (0, center_y), (frame_w, center_y), white_color, 1)
+        # Vertical line across the center
+        cv2.line(frame, (center_x, 0), (center_x, frame_h), white_color, 1)
+
+        # --- 4. Auto-Save Frame ---
+        timestamp = time.strftime("%Y%m%d_%H%M%S_%f")
+        save_path = os.path.join(self._outputDir, f"frame_{timestamp}.jpg")
+        cv2.imwrite(save_path, frame)
+
     @staticmethod
     def calculateDistance(objectInfo: ObjectInfo, obj: Object) -> DisplacementVector:
-        """calculates the distance and angle of the ball from the robot
-
-        Args:
-            objectInfo (ObjectInfo): the detected object's info (width, height, x, y).
-            obj (Object): Ball / BlueGoal / YellowGoal
-
-        Returns:
-            tuple[float]: the displacement vector of the object:
-            [0] - distance (cm).
-            [1] - angle (deg).
-        """
-        
+        """Calculates distance and angle from camera."""
         actualSize: float = BALL_SIZE_CM if obj == Object.Ball else GOAL_SIZE_CM
-        averageDetectedSize: float = (objectInfo.width + objectInfo.height) / 2.0
+        # averageDetectedSize: float = (objectInfo.width + objectInfo.height) / 2.0
+        averageDetectedSize: float = objectInfo.width
         directDistance: float = (actualSize * WebCamera._focalLength) / (averageDetectedSize)
         
         floorProjectionDistance: float = math.sqrt(max(directDistance**2 - CAMERA_HEIGHT_CM**2, 0.0))
@@ -130,19 +162,18 @@ class WebCamera(ICamera):
         ballCenteredXCord: float = objectInfo.x - screenCenterXCord
 
         actualXDistance: float = ballCenteredXCord * actualSize / averageDetectedSize
+        print(f"{actualXDistance=}")
+        print(f"{objectInfo.x=}")
+        print(f"{ballCenteredXCord=}")
+        print(f"{actualSize=}")
+        print(f"{averageDetectedSize=}")
 
         angle: float = math.degrees(math.asin(actualXDistance / floorProjectionDistance))
+        print(f"{angle=}")
         return DisplacementVector(floorProjectionDistance, angle)
 
     def getObjects(self) -> dict[Object, DisplacementVector | None]:
-        """calculates the distance and angle for all objects
-
-        Returns:
-            dict[Object, tuple[float | None, float | None]]: a dictinary holding all objects with the displacement vector for each object:
-            [0] - distance (cm).
-            [1] - angle (deg).
-        """
-
+        """Calculates distance and angle for all objects."""
         self.updateObjects()
 
         objects: dict[Object, DisplacementVector | None] = {}
@@ -150,40 +181,28 @@ class WebCamera(ICamera):
             if any(value is None for value in self._objects[obj].__dict__.values()):
                objects[obj] = None
             else:
-                objects[obj] = self.calculateDistance(self._objects[obj], obj) 
+               objects[obj] = self.calculateDistance(self._objects[obj], obj) 
         
         return objects
 
     def isObjectDetected(self, obj: Object) -> bool:
-        """checks if a given object is detected.
-
-        Args:
-            obj (Object): the object to look-for.
-
-        Returns:
-            bool: Returns wether the object was detected.
-        """
-
+        """Checks if a given object is detected."""
         return not any(value is None for value in self._objects[obj].__dict__.values())
-            
-            
-            
+
 
 if __name__ == "__main__":
-    VERSION = 2.1
+    VERSION = 3.0
     c = WebCamera(f"/home/admin/Superstrika/robot/models/best-V{VERSION}.onnx",
                   {
                       "Ball": Object.Ball,
-                      "Blue goal": Object.BlueGoal,
+                      "Blue Goal": Object.BlueGoal,
                       "Yellow goal": Object.YellowGoal
                   },
-                  594.8065824286882)
+                  focalLength=594.8065824286882)
     
-    # start = time.time()
-    # count = 0
     while True:
-        c.updateObjects()
-        print(c.getObjects())
-        # count += 1
-    
-    print(f"{count=}")
+        # getObjects() internally updates objects and saves the annotated frame
+        distances = c.getObjects()
+        print(distances)
+        time.sleep(0.05)  # Slight pause between captures to control saved image rate
+        # input()
