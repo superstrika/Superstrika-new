@@ -42,7 +42,7 @@ LOG_FORMAT: str = "[%(levelname)s] %(cls)s: %(funcName)s: %(message)s"
 
 BALL_SIZE_CM: float = 4.3
 GOAL_SIZE_CM: float = 64.0
-CAMERA_HEIGHT_CM: float = 13.0
+CAMERA_HEIGHT_CM: float = 14.5
 
 """----------------------------------------------
               Hunt Configuration
@@ -53,7 +53,7 @@ SPIN_SEARCH_ERROR: float = 3
 SPIN_TO_BALL_ERROR: float = 1.5
 GO_TO_BALL_ERROR: float = 1
 # ROBOT_BALL_DISTANCE: tuple[float, float] = (0, 0)
-ROBOT_GOAL_DISTANCE: int = 25
+ROBOT_GOAl_DISTANCE: int = 25
 
 VCNL_PROX_CLOSE: int = 115
 VCNL_PROX_IN_KICKER: int = 140

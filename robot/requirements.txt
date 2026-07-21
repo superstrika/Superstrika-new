@@ -3,3 +3,5 @@ board
 pyusb
 pyserial
 gpiozero
+abs
+opencv-python

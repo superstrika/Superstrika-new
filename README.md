@@ -21,3 +21,8 @@ source venv/bin/activate
 ```bash
 pip3 install -r requirements.txt
 ```
+
+5. Install ultralytics:
+```bash
+pip3 install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu ultralytics torch torchvision
+```

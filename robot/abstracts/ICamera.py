@@ -1,7 +1,7 @@
 from robot.consts.enum import Object, GoalStatus, BallStatus
 from robot.consts.data import VCNL_PROX_IN_KICKER, VCNL_PROX_CLOSE, ROBOT_GOAl_DISTANCE
 
-from abs import ABC, abstractmethod
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 @dataclass
@@ -12,11 +12,15 @@ class ObjectInfo:
     3. area: float - the object's area in pixel^2.
     """
 
-    height: float | None
-    width: float | None
-    x: float | None
-    y: float | None
-    area: float | None
+    height: float | None = None
+    width: float | None = None
+    x: float | None = None
+    y: float | None = None
+    area: float | None = None
+
+    @classmethod
+    def empty(cls) -> "ObjectInfo":
+        return cls()
 
 @dataclass
 class DisplacementVector: 
@@ -25,8 +29,12 @@ class DisplacementVector:
     2. angle: float - the angle in degress.
     """
 
-    distance: float
-    angle: float
+    distance: float = 0.0
+    angle: float = 0.0
+
+    @classmethod
+    def empty(cls) -> "DisplacementVector":
+        return cls()
 
 class ICamera(ABC):
 

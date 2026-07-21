@@ -10,7 +10,7 @@ import robot.components.dribbler as dribbler
 import robot.consts.data as data
 from robot.components.vcnl import VCNL4040 as VCNL
 import logging
-import robot.components.openmvCamera as openmvCamera
+import robot.components.webcamera as webCamera
 from robot.processes.pidCalc import PidCalc
 import robot.processes.gyroMovement as gyroMovement
 import robot.processes.multipleMotors as multipleMotors
@@ -43,7 +43,13 @@ class Hunt:
 
         # sensors
         self.gyro = gyro.MPU6050(self.i2c)
-        self.camera = openmvCamera.OpenmvCamera(data.SERIAL_FREQUENCY)
+        self.camera = webCamera.WebCamera(f"/home/admin/Superstrika/robot/models/best-V2.1.onnx",
+                  {
+                      "Ball": Object.Ball,
+                      "Blue Goal": Object.BlueGoal,
+                      "Yellow goal": Object.YellowGoal
+                  },
+                  594.8065824286882)
 
         # vcnl
         self.vcnl = VCNL()
@@ -84,7 +90,7 @@ class Hunt:
     def check_pause(self, timeout=None):
         return self.running_gate.wait(timeout=timeout)
 
-    def camSearch(self, obj: data.Object = data.Object.Ball) -> bool:
+    def camSearch(self, obj: Object = Object.Ball) -> bool:
         """
         Changes camera angle until ball is found.
         :param delay: the delay each change of angle.
@@ -102,7 +108,7 @@ class Hunt:
         
         return False
 
-    def spinSearch(self, delay=0.6, right: bool = True, obj: data.Object = data.Object.Ball) -> bool | None:
+    def spinSearch(self, delay=0.6, right: bool = True, obj: Object = Object.Ball) -> bool | None:
         """
         Spins the robot 360 degrees or until ball is found.
         :param delay: the delay between the start of spinning to first angle check.
@@ -120,28 +126,30 @@ class Hunt:
             if not self.running_gate.is_set():  # ------------------------------------------------------------------- Check if end button was pressed.
                 return None
             
-            if obj == data.Object.Ball and self.camSearch(obj):
+            if obj == Object.Ball and self.camSearch(obj):
                 self.log.info(f"Object {obj.name} Found")
                 return True
-            elif (obj == data.Object.YellowGoal or obj == data.Object.BlueGoal) and (self.camera.getObjectsStatus()[obj] in (GoalStatus.FAR, GoalStatus.CLOSE)):
+            elif (obj == Object.YellowGoal or obj == Object.BlueGoal) and (self.camera.getObjectsStatus()[obj] in (GoalStatus.FAR, GoalStatus.CLOSE)):
                 self.log.info(f"Object {obj.name} Found")
                 return True
 
             self.gyroMovement.spinToAngle(angle + 45)
             angle = self.gyro.get_z_angle()
 
-            if (obj != data.Object.Ball):
+            if (obj != Object.Ball):
                 time.sleep(0.3)
 
         self.log.info("Spin search failed...")
         return False
 
-    def goToBall(self, obj: data.Object = data.Object.Ball):
+    def goToBall(self, obj: Object = Object.Ball):
         pid = PidCalc(0.35, 0.2, 0.0, 100, True)
         pidDist = PidCalc(1, 0.3, 0.0, 100)
         error = self.camera.getObjects()[obj]
         try:
             while self.vcnl.proximity < 115 and error:
+                print(error)
+
                 correction = pid.pidCalc(-error.angle)
                 speedY = pidDist.pidCalc(error.distance)
 
@@ -160,7 +168,7 @@ class Hunt:
             return None
 
 
-    def tryBallDownSearch(self, obj: data.Object = data.Object.Ball) -> None:
+    def tryBallDownSearch(self, obj: Object = Object.Ball) -> None:
 
         for angle in range(data.MAX_ANGLE, data.MIN_ANGLE, -20):
             self.servo.angle = angle
@@ -171,7 +179,7 @@ class Hunt:
                 self.goToBall(obj=obj)
                 return
     
-    def goToGoal(self, obj: data.Object):
+    def goToGoal(self, obj: Object):
         error = self.camera.getObjects()[obj]
 
         self.log.debug(f"Found Ball at angle: {error.angle}. distance: {error.distance}")
@@ -206,7 +214,7 @@ class Hunt:
             if status == BallStatus.VCNL_IN_KICKER:
                 self.log.info("Ball in Kicker Position!")
                 self.dribbler.start()
-                obj: data.Object = data.Object.YellowGoal if data.SELF_IS_BLUE else data.Object.YellowGoal
+                obj: Object = Object.YellowGoal if data.SELF_IS_BLUE else Object.YellowGoal
 
                 while True:
                     goalStatus = self.camera.getObjectsStatus()[obj]
