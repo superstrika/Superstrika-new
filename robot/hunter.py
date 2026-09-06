@@ -8,9 +8,9 @@ import robot.processes.EdgeLineDetection as EdgeLineDetection
 import robot.components.gyro as gyro
 import robot.components.dribbler as dribbler
 import robot.consts.data as data
-from robot.components.vcnl import VCNL4040 as VCNL
+#from robot.components.vcnl import VCNL4040 as VCNL
 import logging
-import robot.components.webcamera as webCamera
+#import robot.components.webcamera as webCamera
 from robot.processes.pidCalc import PidCalc
 import robot.processes.gyroMovement as gyroMovement
 import robot.processes.multipleMotors as multipleMotors
@@ -43,19 +43,19 @@ class Hunt:
 
         # sensors
         self.gyro = gyro.MPU6050(self.i2c)
-        self.camera = webCamera.WebCamera(f"/home/admin/Superstrika/robot/models/best-V2.1.onnx",
-                  {
-                      "Ball": Object.Ball,
-                      "Blue Goal": Object.BlueGoal,
-                      "Yellow goal": Object.YellowGoal
-                  },
-                  594.8065824286882)
+        #self.camera = webCamera.WebCamera(f"/home/admin/Superstrika/robot/models/best-V2.1.onnx",
+        #          {
+        #              "Ball": Object.Ball,
+        #              "Blue Goal": Object.BlueGoal,
+        #              "Yellow goal": Object.YellowGoal
+        #          },
+        #          594.8065824286882)
 
         # vcnl
-        self.vcnl = VCNL()
-        self.vcnl.led_current = self.vcnl.LED_100MA
-        self.vcnl.proximity_high_definition = True
-        self.vcnl.proximity_integration_time = self.vcnl.PS_8T
+        #self.vcnl = VCNL()
+        #self.vcnl.led_current = self.vcnl.LED_100MA
+        #self.vcnl.proximity_high_definition = True
+        #self.vcnl.proximity_integration_time = self.vcnl.PS_8T
 
         # processes
         # self.lineDetection = EdgeLineDetection.EdgeLineDetection(pins=data.TCRT_PINS, motors=self.motors, parent=self)

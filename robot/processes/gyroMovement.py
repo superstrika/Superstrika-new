@@ -82,5 +82,5 @@ class GyroMovement:
 
 if __name__ == "__main__":
     s = GyroMovement()
-    s.spinToAngle(30, (2, 2, 0.1, 100))
+    s.spinToAngle(180, (0.4, 2, 0.1, 100))
     # s.move_forward_cm(25, pidValues=(0.4, 0.01, 0.1, 100), speed=(0, 40))

@@ -31,27 +31,27 @@ class Ride(Hunt):
 
     def joyRide(self):
 
-        self.gyroMovement.move_forward_cm(20, (0, 30))
+        self.gyroMovement.move_forward_cm(20, (0, 100))
 
         input()
 
-        self.gyroMovement.move_forward_cm(20, (0, -30))
+        self.gyroMovement.move_forward_cm(20, (0, -100))
 
         input()
 
-        self.gyroMovement.move_forward_cm(10, (30, 30))
+        self.gyroMovement.move_forward_cm(20, (100, 100))
 
         input()
 
-        self.gyroMovement.move_forward_cm(20, (-30, 0))
+        self.gyroMovement.move_forward_cm(20, (-100, 0))
 
         input()
 
-        self.gyroMovement.move_forward_cm(20, (0, -30))
+        self.gyroMovement.move_forward_cm(20, (0, -100))
 
         input()
 
-        self.goToBall()
+        #self.goToBall()
 
 if __name__ == "__main__":
     j = Ride()
