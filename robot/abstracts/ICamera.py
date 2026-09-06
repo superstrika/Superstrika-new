@@ -1,5 +1,5 @@
 from robot.consts.enum import Object, GoalStatus, BallStatus
-from robot.consts.data import VCNL_PROX_IN_KICKER, VCNL_PROX_CLOSE, ROBOT_GOAl_DISTANCE
+from robot.consts.data import BALL_IN_KICKER_DISTANCE, ROBOT_GOAl_DISTANCE
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -26,7 +26,7 @@ class ObjectInfo:
 class DisplacementVector: 
     """Struct of Object displacement vector:
     1. distance: float - the distance in centimeters.
-    2. angle: float - the angle in degress.
+    2. angle: float - the angle in degrees.
     """
 
     distance: float = 0.0
@@ -40,15 +40,15 @@ class ICamera(ABC):
 
     @abstractmethod
     def getObjects(self) -> dict[Object, DisplacementVector]:
-        """Pure Virtual method; must be overriden"""
+        """Pure Virtual method; must be overridden"""
         pass
 
     @abstractmethod
     def isObjectDetected(self, obj: Object) -> bool:
-        """Pure Virtual method; must be overriden"""
+        """Pure Virtual method; must be overridden"""
         pass
 
-    def getObjectsStatus(self, vcnlProximity: int = 0) -> dict[Object, GoalStatus | BallStatus]:
+    def getObjectsStatus(self) -> dict[Object, GoalStatus | BallStatus]:
         distances = self.getObjects()
         statuses: dict[Object, GoalStatus | BallStatus] = {}
 
@@ -62,16 +62,12 @@ class ICamera(ABC):
 
         camFound = True if distances[Object.Ball] else False
 
-        if not camFound and vcnlProximity < VCNL_PROX_CLOSE:
+        if not camFound:
             statuses[Object.Ball] = BallStatus.NOT_FOUND
-        elif camFound and vcnlProximity < VCNL_PROX_CLOSE:
-            statuses[Object.Ball] = BallStatus.CAM_DETECTED
-        elif not camFound and VCNL_PROX_CLOSE < vcnlProximity < VCNL_PROX_IN_KICKER:
-            statuses[Object.Ball] = BallStatus.VCNL_CLOSE
-        elif not camFound and VCNL_PROX_IN_KICKER < vcnlProximity:
-            statuses[Object.Ball] = BallStatus.VCNL_IN_KICKER
+        elif distances[Object.Ball].distance < BALL_IN_KICKER_DISTANCE:
+            statuses[Object.Ball] = BallStatus.IN_KICKER
         else:
-            statuses[Object.Ball] = BallStatus.CAM_DETECTED_AND_VCNL_CLOSE
+            statuses[Object.Ball] = BallStatus.CAM_DETECTED
         
         return statuses
     

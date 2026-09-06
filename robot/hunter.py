@@ -8,7 +8,6 @@ import robot.processes.EdgeLineDetection as EdgeLineDetection
 import robot.components.gyro as gyro
 import robot.components.dribbler as dribbler
 import robot.consts.data as data
-#from robot.components.vcnl import VCNL4040 as VCNL
 import logging
 #import robot.components.webcamera as webCamera
 from robot.processes.pidCalc import PidCalc
@@ -50,12 +49,6 @@ class Hunt:
         #              "Yellow goal": Object.YellowGoal
         #          },
         #          594.8065824286882)
-
-        # vcnl
-        #self.vcnl = VCNL()
-        #self.vcnl.led_current = self.vcnl.LED_100MA
-        #self.vcnl.proximity_high_definition = True
-        #self.vcnl.proximity_integration_time = self.vcnl.PS_8T
 
         # processes
         # self.lineDetection = EdgeLineDetection.EdgeLineDetection(pins=data.TCRT_PINS, motors=self.motors, parent=self)
@@ -147,13 +140,13 @@ class Hunt:
         pidDist = PidCalc(1, 0.3, 0.0, 100)
         error = self.camera.getObjects()[obj]
         try:
-            while self.vcnl.proximity < 115 and error:
+            while error:
                 print(error)
 
                 correction = pid.pidCalc(-error.angle)
                 speedY = pidDist.pidCalc(error.distance)
 
-                self.motors.setSpeed(0, speedY, correction, back_only=(self.vcnl.proximity > 100))
+                self.motors.setSpeed(0, speedY, correction)
                 time.sleep(0.01)
 
                 error = self.camera.getObjects()[obj]
@@ -186,12 +179,12 @@ class Hunt:
 
         self.gyroMovement.spinToAngle(-error.distance)
 
-        self.gyroMovement.move_until(speed=(0, 30), until=lambda: self.vcnl.proximity > 100)
+        self.gyroMovement.move_forward_cm(20, (0, 30))
 
     def hunt(self):
         while True:
             self.check_pause()
-            status = self.camera.getObjectsStatus(self.vcnl.proximity)[Object.Ball]
+            status = self.camera.getObjectsStatus()[Object.Ball]
 
             if status == BallStatus.CAM_DETECTED:
                 self.log.info("Ball Detected!")
@@ -206,12 +199,7 @@ class Hunt:
                     self.log.debug("Spin Search failed!")
                     self.gyroMovement.move_forward_cm(15, (0, 30), (0.4, 0.01, 0.1, 100))
 
-            if status == BallStatus.VCNL_CLOSE:
-                self.log.info("Ball is Close!")
-                self.dribbler.start()
-                self.gyroMovement.move_forward_cm(2, (0, 30), (0.4, 0.01, 0.1, 100))
-
-            if status == BallStatus.VCNL_IN_KICKER:
+            if status == BallStatus.IN_KICKER:
                 self.log.info("Ball in Kicker Position!")
                 self.dribbler.start()
                 obj: Object = Object.YellowGoal if data.SELF_IS_BLUE else Object.YellowGoal
