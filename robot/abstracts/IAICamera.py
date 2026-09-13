@@ -148,6 +148,7 @@ class IAICamera(ICamera):
 
     def calculateDistance(self, objectInfo: ObjectInfo, obj: Object) -> DisplacementVector:
         """Calculates distance and angle from camera."""
+
         actualSize: float = BALL_SIZE_CM if obj == Object.Ball else GOAL_SIZE_CM
         averageDetectedSize: float = (objectInfo.width + objectInfo.height) / 2.0
         # averageDetectedSize: float = objectInfo.width
@@ -163,7 +164,12 @@ class IAICamera(ICamera):
         angle: float = math.degrees(math.asin(actualXDistance / floorProjectionDistance))
         return DisplacementVector(floorProjectionDistance, angle)
 
-    def getObjects(self) -> dict[Object, DisplacementVector | None]:
+    @staticmethod
+    def calculateMirrorAngle(objectInfo: ObjectInfo) -> DisplacementVector:
+        angle = math.atan(objectInfo.x / objectInfo.y)
+        return DisplacementVector(0, angle)
+
+    def getObjects(self, mirror: bool = False) -> dict[Object, DisplacementVector | None]:
         """Calculates distance and angle for all objects."""
         self.updateObjects()
 
@@ -171,6 +177,8 @@ class IAICamera(ICamera):
         for obj in [Object.Ball, Object.BlueGoal, Object.YellowGoal]:
             if any(value is None for value in self._objects[obj].__dict__.values()):
                 objects[obj] = None
+            elif mirror:
+                objects[obj] = self.calculateMirrorAngle(self._objects[obj])
             else:
                 objects[obj] = self.calculateDistance(self._objects[obj], obj)
 

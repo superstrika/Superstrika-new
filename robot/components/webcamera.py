@@ -42,8 +42,6 @@ if __name__ == "__main__":
                   focalLength=594.8065824286882)
     
     while True:
-        # getObjects() internally updates objects and saves the annotated frame
         distances = c.getObjects()
         print(distances)
         time.sleep(0.05)  # Slight pause between captures to control saved image rate
-        # input()
