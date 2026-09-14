@@ -1,14 +1,7 @@
 from robot.abstracts.IAICamera import IAICamera
-from robot.abstracts.ICamera import ObjectInfo, DisplacementVector
-from robot.consts.enum import Object, GoalStatus, BallStatus
-from robot.consts.data import BALL_SIZE_CM, GOAL_SIZE_CM, CAMERA_HEIGHT_CM
-
-import math
-from ultralytics import YOLO
 from picamera2 import Picamera2
 import cv2
-import time
-        
+
 class RaspiCamera(IAICamera):
 
     def __init__(self,

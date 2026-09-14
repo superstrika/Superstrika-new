@@ -1,6 +1,5 @@
 from robot.abstracts.IAICamera import IAICamera
 import cv2
-import time
 
 class WebCamera(IAICamera):
 
@@ -37,6 +36,8 @@ class WebCamera(IAICamera):
                           interpolation=cv2.INTER_AREA)
 
 if __name__ == "__main__":
+    import time
+
     VERSION = 3.0
     c = WebCamera(f"/home/admin/Superstrika/robot/models/best-V{VERSION}.onnx",
                   focalLength=594.8065824286882)
