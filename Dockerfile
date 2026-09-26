@@ -10,11 +10,17 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONPATH=/robot \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# Raspberry Pi apt repo: libcamera/picamera2 and lgpio are not usable from pip
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl gnupg \
-    && curl -fsSL https://archive.raspberrypi.com/debian/raspberrypi.gpg.key \
-        | gpg --dearmor -o /usr/share/keyrings/raspberrypi.gpg \
-    && echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.com/debian ${DEBIAN_RELEASE} main" \
+# Raspberry Pi apt repo: libcamera/picamera2 and lgpio are not usable from pip.
+# The legacy raspberrypi.gpg.key has SHA1 self-signatures that trixie's apt (sqv)
+# rejects, so install the same keyring package Pi OS ships, pinned by checksum.
+ARG RPI_KEYRING_DEB=raspberrypi-archive-keyring_2025.1+rpt1_all.deb
+ARG RPI_KEYRING_SHA256=2e727149d7acb8cc7f604e66d0049161039c8aa1eaf1175e54f9e69d963d60e4
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl \
+    && curl -fsSL -o /tmp/rpi-keyring.deb \
+        "https://archive.raspberrypi.com/debian/pool/main/r/raspberrypi-archive-keyring/${RPI_KEYRING_DEB}" \
+    && echo "${RPI_KEYRING_SHA256}  /tmp/rpi-keyring.deb" | sha256sum -c - \
+    && dpkg -i /tmp/rpi-keyring.deb && rm /tmp/rpi-keyring.deb \
+    && echo "deb [signed-by=/usr/share/keyrings/raspberrypi-archive-keyring.pgp] http://archive.raspberrypi.com/debian ${DEBIAN_RELEASE} main" \
         > /etc/apt/sources.list.d/raspi.list \
     && apt-get update && apt-get install -y --no-install-recommends \
         python3 \

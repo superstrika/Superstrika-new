@@ -1,4 +1,5 @@
 # picamera2 and simplejpeg come from Raspberry Pi's apt repo and are built
-# against Debian's numpy 1.x, so pip must not upgrade numpy to 2.x.
-numpy<2
-opencv-python<4.12
+# against Debian trixie's numpy 2.2, so keep pip on that same numpy series.
+numpy>=2,<2.3
+# OpenCV 5 is a new major version; stay on 4.x until the vision code is tested with it.
+opencv-python<5
