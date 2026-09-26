@@ -1,7 +1,19 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+# Hardware
 smbus2
-board
 pyusb
 pyserial
 gpiozero
-abs
+ADS1x15-ADC
+
+# Vision
 opencv-python
+ultralytics
+onnxruntime
+torch
+torchvision
+
+# Analysis
+pandas
+matplotlib

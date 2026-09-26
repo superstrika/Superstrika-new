@@ -1,0 +1,30 @@
+# Shared settings: full hardware access, host network, and the repo bind-mounted
+# at /robot so code edits apply on restart without rebuilding the image.
+x-robot: &robot
+  image: ghcr.io/superstrika/superstrika-new:latest
+  build: .
+  privileged: true
+  network_mode: host
+  working_dir: /robot
+  volumes:
+    - /dev:/dev
+    - /run/udev:/run/udev:ro
+    - ./:/robot
+
+services:
+  robot-core:
+    <<: *robot
+    container_name: robot_core
+    restart: always
+    command: ["python3", "main.py"]
+    stdin_open: true
+    tty: true
+
+  # Manual only: `docker compose up -d console`. Not started by a plain
+  # `docker compose up`, and not restarted after a reboot.
+  console:
+    <<: *robot
+    container_name: robot_console
+    profiles: ["console"]
+    restart: "no"
+    command: ["python3", "robot/console/server.py"]

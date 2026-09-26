@@ -42,6 +42,31 @@ Software for the **Superstrika** RoboCup Junior Soccer robot, developed by the t
    pip3 install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu ultralytics torch torchvision
    ```
 
+## Running with Docker
+
+The Docker image holds only the dependencies. The code is bind-mounted from this repo, so editing it on the Pi only needs a container restart. GitHub Actions rebuilds the image (`ghcr.io/superstrika/superstrika-new`) when `Dockerfile`, `constraints.txt` or `robot/requirements.txt` change.
+
+Set up a new Pi (Docker installed, I2C/SPI/UART enabled in `raspi-config`):
+
+```bash
+git clone https://github.com/superstrika/Superstrika-new.git
+cd Superstrika-new
+docker compose pull
+docker compose up -d
+```
+
+`robot-core` runs `main.py` and starts again automatically after a reboot. Everyday commands:
+
+```bash
+docker compose restart robot-core     # after editing code
+docker compose logs -f robot-core     # watch output
+docker compose up -d console          # start the web console (manual only, http://<pi>:8080)
+docker compose stop console           # stop the web console
+docker compose run --rm robot-core python3 -m robot.calibration.servo_calibration
+```
+
+The console launches `main.py` itself, so stop `robot-core` before using it to keep two processes off the same hardware.
+
 ## Project structure
 
 ```text
