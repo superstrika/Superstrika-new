@@ -16,7 +16,12 @@ services:
     <<: *robot
     container_name: robot_core
     restart: always
-    command: ["python3", "main.py"]
+    environment:
+      ROBOT_AUTOSTART: ${ROBOT_AUTOSTART:-true}
+    command:
+      - bash
+      - -lc
+      - 'if [ "$${ROBOT_AUTOSTART:-true}" = "true" ]; then exec python3 main.py; else exec tail -f /dev/null; fi'
     stdin_open: true
     tty: true
 
