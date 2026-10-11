@@ -1,7 +1,7 @@
 import time
 
 from robot.abstracts.IAICamera import IAICamera
-from picamera2 import Picamera2
+from picamera2 import Picamera2, controls
 import cv2
 
 class RaspiCamera(IAICamera):
@@ -24,6 +24,11 @@ class RaspiCamera(IAICamera):
         self._picam.configure("preview")
 
         self._picam.start()
+
+        self._picam.set_controls({
+            "AfMode": 0,  # manual focus
+            "LensPosition": 5.0,  # focus to infinity
+        })
         
         # calibration:
         if self._focalLength == 0.0:
