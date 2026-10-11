@@ -34,8 +34,9 @@ class RaspiCamera(IAICamera):
         and making the model look for the objects in it.
         """
         
-        frame = self._picam.capture_array()
-        return cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+        # Picamera2's "RGB888" format is stored in memory as B,G,R per pixel,
+        # which is already the channel order OpenCV expects - no conversion needed.
+        return self._picam.capture_array()
 
 
 if __name__ == "__main__":
