@@ -1,3 +1,5 @@
+import time
+
 from robot.abstracts.IAICamera import IAICamera
 from picamera2 import Picamera2
 import cv2
@@ -12,7 +14,7 @@ class RaspiCamera(IAICamera):
                  outputDir: str = "saved_frames",
                  ):
 
-        super().__init__(modelPath, imageRes, focalLength, objectNames, outputDir)
+        super().__init__(modelPath=modelPath, imageRes=imageRes, focalLength=focalLength, objectNames=objectNames, outputDir=outputDir)
 
         # camera configuration:
         self._picam = Picamera2()
@@ -34,4 +36,12 @@ class RaspiCamera(IAICamera):
         
         frame = self._picam.capture_array()
         return cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+
+
+if __name__ == "__main__":
+    cam = RaspiCamera("robot/models/best-V3.0.onnx")
+
+    while True:
+        print(cam.getObjects())
+        time.sleep(1)
 

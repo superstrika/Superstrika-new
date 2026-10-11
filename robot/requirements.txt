@@ -6,6 +6,7 @@ pyusb
 pyserial
 gpiozero
 ADS1x15-ADC
+picamera2
 
 # Vision
 opencv-python

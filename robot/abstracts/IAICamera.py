@@ -59,7 +59,7 @@ class IAICamera(ICamera):
         start = time.time()
         print(f"Calibration: place orange ball at {calibrationDistanceCM} cm.")
 
-        while time.time() - start < timeoutSec and IAICamera._focalLength == 0:
+        while time.time() - start < timeoutSec and self._focalLength == 0:
             self.updateObjects()
 
             if not self.isObjectDetected(Object.Ball):
